@@ -1,0 +1,1 @@
+This is a project that aims to construct a RISC-V ISA-based CPU, using the R32I instruction set (and the R32F extension if time and interest permit). All components are constructed manually, using the lowest level of abstraction possible.
