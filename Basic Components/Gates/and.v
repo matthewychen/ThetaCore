@@ -1,12 +1,12 @@
-module and (
+module and_gate(
     input A,
     input B,
     output O
 );
 
-wire temp;
+wire and_temp;
 
-nand nand(.O(temp), .A(A), .B(B));
-not not(.O(O), .A(temp));
+nand_gate nand1(.O(and_temp), .A(A), .B(B));
+not_gate not1(.A(and_temp), .O(O));
 
 endmodule

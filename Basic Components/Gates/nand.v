@@ -1,4 +1,4 @@
-module nand(
+module nand_gate(
     input A,
     input B,
     output O
@@ -7,11 +7,11 @@ module nand(
 wire NMOS_temp;
     
 //PMOS in parallel
-pmos (O, 1'b1, A);
-pmos (O, 1'b1, B);
+pmos(O, 1'b1, A);
+pmos(O, 1'b1, B);
 
 //NMOS in series to avoid floating result
-nmos (NMOS_temp, 1'b0, A);
-nmos (O, NMOS_temp, B);
+nmos(NMOS_temp, 1'b0, A);
+nmos(O, NMOS_temp, B);
 
 endmodule
