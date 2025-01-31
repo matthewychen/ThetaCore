@@ -15,9 +15,11 @@ assign BL1out = (WL) ? I : 1'bz; //indeterminate output when WL not active
 assign BL2out = (WL) ? Ibar : 1'bz;
 
 always @(*) begin
-    if(WL == 1'b1) begin
-        I <= BL1in;
-        Ibar <= BL2in;
+    if(WL) begin
+        if(BL1in != 1'bz and BL2in !=1'bz) begin
+            I <= BL1in;
+            Ibar <= BL2in;
+        end
     end
 end
 
