@@ -1,4 +1,5 @@
 //6T industry-standard SRAM latch
+//needed to eliminate paired inverters for I and Ibar due to lack of verilog support
 module SRAMcell(
     input WL,
     input BL1in,
@@ -16,7 +17,7 @@ assign BL2out = (WL) ? Ibar : 1'bz;
 
 always @(*) begin
     if(WL) begin
-        if(BL1in != 1'bz and BL2in !=1'bz) begin
+        if(BL1in != 1'bz and BL2in !=1'bz) begin //no way to detect floating state with only gates unfortunately
             I <= BL1in;
             Ibar <= BL2in;
         end
