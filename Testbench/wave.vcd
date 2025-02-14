@@ -1,0 +1,22 @@
+$date
+	Thu Feb 13 23:23:12 2025
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ns
+$end
+$scope module tb $end
+$var reg 1 ! myreg $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+1!
+$end
+#1
+0!
+#3
+1!
+#6

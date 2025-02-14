@@ -1,0 +1,7 @@
+//LEAVE 1L WHITESPACE AT END FOR COMPILATION
+
+./tb.sv
+../SRAM/SRAMcell.sv
+../SRAM/SRAddress.sv
+
+//../SRAM/SRAM.sv
