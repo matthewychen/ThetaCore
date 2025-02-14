@@ -1,4 +1,4 @@
-##THETACORE™️ RISC-V CPU
+# ##THETACORE™️ RISC-V CPU##
 
 This is a project that aims to construct a RISC-V ISA-based CPU (and associated RAM), using the R32I instruction set (and the R32F extension if time and interest permit).
 
