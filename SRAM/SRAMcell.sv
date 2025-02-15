@@ -5,27 +5,30 @@ module SRAMcell(
     input logic BL1in,
     input logic BL2in,
 
+    input read_pulse,
+    input write_pulse,
+
     output logic BL1out,
-    output logic BL2out //unused
+    output logic BL2out
 );
 
-reg I;
-reg Ibar;
+reg I_main;
+reg I_bar;
 
-always @(*) begin
+always @(posedge read_pulse) begin
     if (WL) begin
-        BL1out = I;
-        BL2out = Ibar;
+        BL1out = I_main;
+        BL2out = I_bar;
     end else begin
         BL1out = 1'bz;
         BL2out = 1'bz;
     end
 end
 
-always @(posedge WL) begin
-    if(BL1in != 1'bz && BL2in !=1'bz) begin //no way to detect floating state without analog sim, use BMOD instead
-        I <= BL1in;
-        Ibar <= BL2in;
+always @(posedge write_pulse) begin
+    if(WL) begin //no way to detect floating state without analog sim, use BMOD instead
+        I_main <= BL1in;
+        I_bar <= BL2in;
     end
 end
 
