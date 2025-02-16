@@ -1,9 +1,13 @@
 `include "defines.vh"
 
-module tb;
-    SRAM_itf SRAM();
+module tb();
     initial begin
         #257;
+        SRAM.read_pulse = 0;
+        #1;
+        SRAM.read_pulse = 1;
+        #1;
+        SRAM.read_pulse = 0;
     end
 
     SRAM SRAM_DUT(
