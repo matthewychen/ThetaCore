@@ -4,7 +4,7 @@ This is a project that aims to construct a RISC-V ISA-based CPU (and associated 
 
 #### To create testbench:
 
-install icarusverilog sim and gtkwave from respective vendors (don't use icarusverilog bundled gtkwave, I noticed performance issues). Then run:
+install icarusverilog sim and gtkwave from respective vendors (don't use icarusverilog bundled gtkwave, I noticed performance issues). cd into /Testbench. Then run:
 
 ```
 iverilog -g2012 -f list.f -o testsim
