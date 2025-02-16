@@ -5,9 +5,8 @@ module SRAM(
     input write_pulse,
 
     input [31:0] datain,
-    output reg [31:0] dataout,
+    output reg [31:0] dataout
 
-    output reg f_ready
 );
 
 reg [127:0] WL_sel;
@@ -19,13 +18,11 @@ end
 
 always @(posedge addr_ready) begin
     WL_sel[addr] = 1'b1; // Reset mask every cycle
-    f_ready = 1;
 end
 
 
 always@(negedge addr_ready) begin
     WL_sel = 128'd0;
-    f_ready <= 0;
 end
 
 genvar i;
