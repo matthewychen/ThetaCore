@@ -23,7 +23,7 @@ module tb_top;
     end
 
     initial begin
-        file = $fopen("bits.b", "r");
+        file = $fopen("bits.bin", "r");
         if (file == 0) begin
             $display("File access error.");
             $finish;
