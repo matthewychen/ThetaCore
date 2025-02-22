@@ -9,4 +9,3 @@
 
 //./load_SRAM.sv
 ./tb_top.sv
-./SRAM_itf.sv

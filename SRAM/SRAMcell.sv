@@ -25,8 +25,8 @@ always @(posedge read_pulse) begin
     end
 end
 
-always @(posedge write_pulse) begin
-    if(WL) begin //no way to detect floating state without analog sim, use BMOD instead
+always @(*) begin
+    if(WL & write_pulse) begin
         I_main <= BL1in;
         I_bar <= BL2in;
     end

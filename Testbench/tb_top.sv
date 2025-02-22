@@ -15,13 +15,14 @@ module tb_top;
     integer status;
     logic [31:0] temp_data;
 
-    //DUMP
+    //waveform generation block
     initial begin
         $dumpfile("wave.vcd");
         $dumpvars(0, tb_top);
         $display("Compilation Success!");
     end
 
+    //memory constructor and initialization with bits.bin block
     initial begin
         file = $fopen("bits.bin", "r");
         if (file == 0) begin
@@ -52,8 +53,21 @@ module tb_top;
         $fclose(file);
     end
 
+    //testbench begin
     initial begin
         #7000;
+        //test write functionality
+        addr = 7'd11;
+        #1;
+        addr_ready = 1;
+        #1;
+        write_pulse = 1;
+        #1;
+        datain = 32'b10101010101;
+        #1;
+        write_pulse = 0;
+        addr_ready = 0;
+        #1000;
         addr = 0;
         for (i = 0; i < 128; i = i + 1) begin
             #1;
@@ -70,7 +84,7 @@ module tb_top;
         $finish;
     end
 
-    //INSTANTIATIONS
+    //Instantiations 
     SRAM SRAM_DUT(
         .addr(addr), 
         .addr_ready(addr_ready),
