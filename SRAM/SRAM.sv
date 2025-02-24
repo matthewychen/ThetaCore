@@ -28,7 +28,7 @@ end
 genvar i;
 generate
     for (i = 0; i < 128; i = i + 1) begin : SRAM_addrs
-        SRAddress SRAddress_inst(
+        SRAMAddress SRAMAddress_inst(
             .WL(WL_sel[i]),
             .datain(datain),
             .dataout(dataout_array[i]),

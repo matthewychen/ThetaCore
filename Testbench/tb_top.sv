@@ -15,14 +15,14 @@ module tb_top;
     integer status;
     logic [31:0] temp_data;
 
-    //waveform generation block
+    //waveform dumpblock
     initial begin
         $dumpfile("wave.vcd");
         $dumpvars(0, tb_top);
         $display("Compilation Success!");
     end
 
-    //memory constructor and initialization with bits.bin block
+    //SRAM dataload constructor and initialization with bits.bin
     initial begin
         file = $fopen("bits.bin", "r");
         if (file == 0) begin

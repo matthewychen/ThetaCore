@@ -4,7 +4,7 @@
 
 //./tb.sv
 ../SRAM/SRAMcell.sv
-../SRAM/SRAddress.sv
+../SRAM/SRAMAddress.sv
 ../SRAM/SRAM.sv
 
 //./load_SRAM.sv
