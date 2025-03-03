@@ -3,7 +3,7 @@
 module tb_top;
 
     reg [6:0] addr;
-    reg addr_ready;
+    reg [3:0] mbyte;
     reg read_pulse;
     reg write_pulse;
 
@@ -30,22 +30,18 @@ module tb_top;
             $finish;
         end
         addr = 0;
-        addr_ready = 0;
         read_pulse = 0;
         write_pulse = 0;
+        mbyte = 4'b1111;
         #1;
 
         for (i = 0; i < 128; i = i + 1) begin
              status = $fscanf(file, "%b\n", temp_data);
              datain = temp_data;
              $display("writing: %b, to address: %b", datain, addr);
-             addr_ready = 1;
-             #1;
              write_pulse = 1;
              #1;
              write_pulse = 0;
-             #1;
-             addr_ready = 0;
              #1;
              addr = addr + 1;
         end
@@ -59,26 +55,18 @@ module tb_top;
         //test write functionality
         addr = 7'd11;
         #1;
-        addr_ready = 1;
-        #1;
         write_pulse = 1;
         #1;
         datain = 32'b10101010101;
         #1;
         write_pulse = 0;
-        addr_ready = 0;
         #1000;
         addr = 0;
         for (i = 0; i < 128; i = i + 1) begin
-            #1;
-            addr_ready = 1;
-            #1;
             read_pulse = 1;
             #1;
             read_pulse = 0;
             #1;
-            addr_ready = 0;
-            #1
             addr = addr + 1;
         end
         $finish;
@@ -86,8 +74,8 @@ module tb_top;
 
     //Instantiations 
     SRAM SRAM_DUT(
-        .addr(addr), 
-        .addr_ready(addr_ready),
+        .addr_sel(addr),
+        .byte_sel(mbyte),
         .read_pulse(read_pulse),
         .write_pulse(write_pulse),
         .datain(datain),

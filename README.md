@@ -16,4 +16,4 @@ To view waveform:
 gtkwave.exe wave.vcd (or your dumpfile name)
 ```
 
-RISCV binary can be compiled and directly saved to bits.b. The data will be loaded into SRAM.
+RISCV binary can be compiled and directly saved to bits.bin. The data will be loaded into SRAM with the tb block.
