@@ -1,6 +1,6 @@
 //maybe need seperate query clock?
 
-module SRAMAddress(
+module SRAMaddress(
     input logic WL,
     input [3:0] byte_sel,
 
