@@ -38,10 +38,6 @@ generate
     end
 endgenerate
 
-always @(negedge read_pulse) begin
-    if (WL) begin
-        dataout <= BL1out;
-    end
-end
+assign dataout = BL1out;
 
 endmodule

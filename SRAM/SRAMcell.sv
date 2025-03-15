@@ -15,7 +15,6 @@ module SRAMcell(
 reg I_main;
 reg I_bar;
 
-// Initialize the memory cell
 initial begin
     I_main = 1'b0;
     I_bar = 1'b1;
@@ -41,7 +40,7 @@ always @(*) begin
     if (read_active && WL) begin
         BL1out = I_main;
         BL2out = I_bar;
-    end else if (!read_active) begin
+    end else begin
         BL1out = 1'bz;
         BL2out = 1'bz;
     end
