@@ -1,7 +1,7 @@
 module ALU_top(
     //templated
     input soc_clk,
-    input reset_b,
+    input reset,
     input dat_ready,
 
     //databusses
@@ -18,11 +18,9 @@ module ALU_top(
         //1'b0 -> B type (ALU_out redundant, all that is needed is branching flag)
 
     //flags
-    output ALU_underflow,
     output ALU_overflow,
     output ALU_branch,
     output ALU_zero,
-    output ALU_negative,
 
     //to CU
     output [31:0] ALU_out
@@ -38,6 +36,20 @@ module ALU_top(
     reg[3:0] decryptedOP;
     
 
+    initial begin
+        ALU_underflow = 1'b0;
+        ALU_overflow = 1'b0;
+        ALU_branch = 1'b0;
+        ALU_zero = 1'b0;
+        ALU_negative = 1'b0;
+        ALU_out = 32'b0;
+
+        reg_ALU_dat1 = 32'b0;
+        reg_ALU_dat2 = 32'b0;
+        reg_ALU_opcode = 3'b0;
+        reg_ALU_optype = 1'b0;
+        reg_concat_op = 5'b0;
+    end
 
     always@(posedge dat_ready) begin //preserve to avoid dataloss
         reg_ALU_dat1 <= ALU_dat1;
@@ -85,7 +97,7 @@ module ALU_top(
         endcase
     end
 
-    //opcode decryption
+    //instantiations
     
 
 endmodule
