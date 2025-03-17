@@ -46,6 +46,7 @@ assign AddSub_overflow = AddSub_superint[32];
 assign AddSub_zero = ~(|AddSub_superint[31:0]);
 
 //instantiations
+//ADDSUB
 rippleadder RA(
     .A(RA_dat1),
     .B(RA_dat2),

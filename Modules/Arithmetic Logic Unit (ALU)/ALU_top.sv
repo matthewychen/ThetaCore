@@ -74,28 +74,32 @@ module ALU_top(
         case(reg_concat_op)
 
             //B
-            5'b10000: decryptedOP = 5'd0; //BEQ
-            5'b10001: decryptedOP = 5'd1; //BNE
-            5'b10100: decryptedOP = 5'd2; //BLT
-            5'b10101: decryptedOP = 5'd3; //BGE
-            5'b10110: decryptedOP = 5'd4; //BLTU
-            5'b10111: decryptedOP = 5'd5; //BGEU
+            5'b10000: decryptedOP = 5'd0; //BEQ branch equal
+            5'b10001: decryptedOP = 5'd1; //BNE branch not equal
+            5'b10100: decryptedOP = 5'd2; //BLT branch less than
+            5'b10101: decryptedOP = 5'd3; //BGE branch greater than or equal
+            5'b10110: decryptedOP = 5'd4; //BLTU branch less than unsigned
+            5'b10111: decryptedOP = 5'd5; //BGEU branch greater than or equal unsigned
 
             //I/R
-            5'b00000: decryptedOP = 5'd6; //ADD/ADDI
-            5'b01000: decryptedOP = 5'd7; //SUB
-            5'b00001: decryptedOP = 5'd8; //SLL/SLLI
-            5'b00010: decryptedOP = 5'd9; //SLT/SLTI
-            5'b00011: decryptedOP = 5'd10; //SLTU
-            5'b00100: decryptedOP = 5'd11; //XOR/XORI
-            5'b00101: decryptedOP = 5'd12; //SRL/SRLI
-            5'b01101: decryptedOP = 5'd13; //SRA/SRAI
-            5'b00110: decryptedOP = 5'd14; //OR/ORI
-            5'b00111: decryptedOP = 5'd15; //AND/ANDI
+            5'b00000: decryptedOP = 5'd6; //ADD/ADDI add DONE
+            5'b01000: decryptedOP = 5'd7; //SUB subtract DONE
+            5'b00001: decryptedOP = 5'd8; //SLL/SLLI logical leftshift DONE
+            5'b00010: decryptedOP = 5'd9; //SLT/SLTI set less than
+            5'b00011: decryptedOP = 5'd10; //SLTU set less than unsigned
+            5'b00100: decryptedOP = 5'd11; //XOR/XORI xor DONE
+            5'b00101: decryptedOP = 5'd12; //SRL/SRLI logical rightshift DONE
+            5'b01101: decryptedOP = 5'd13; //SRA/SRAI arithmetic rightshift DONE
+            5'b00110: decryptedOP = 5'd14; //OR/ORI or DONE
+            5'b00111: decryptedOP = 5'd15; //AND/ANDI and DONE
 
             default: decryptedOP = 5'dz; //invalid
         endcase
     end
+
+    //TODO
+    //need to implement 3 soc cycles after dat_ready to collect data according to decoded module
+
 
     //instantiations
     
