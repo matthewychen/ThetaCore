@@ -70,7 +70,7 @@ module ALU_top(
     end
 
     //decryptor
-    always@(reg_concat_op) begin
+    always@(reg_concat_op) begin //IMPORTANT: need to account for situations where IMM places a 1 in reg_ALU_optype
         case(reg_concat_op)
 
             //B
@@ -99,6 +99,7 @@ module ALU_top(
 
     //TODO
     //need to implement 3 soc cycles after dat_ready to collect data according to decoded module
+    //ALU_out should be assigned to the output of the decoded module
 
 
     //instantiations
