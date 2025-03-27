@@ -19,11 +19,11 @@ module ALU_top(
 
     //flags
     output ALU_overflow,
-    output ALU_branch,
+    output ALU_con_met, //branching and SLTI flag
     output ALU_zero,
 
     //to CU
-    output [31:0] ALU_out
+    output reg [31:0] ALU_out
     );
 
     //for storage to mitigate data loss
@@ -39,16 +39,18 @@ module ALU_top(
     initial begin
         ALU_underflow = 1'b0;
         ALU_overflow = 1'b0;
-        ALU_branch = 1'b0;
+        ALU_con_met = 1'b0;
         ALU_zero = 1'b0;
         ALU_negative = 1'b0;
-        ALU_out = 32'b0;
+        ALU_out <= 32'b0;
 
         reg_ALU_dat1 = 32'b0;
         reg_ALU_dat2 = 32'b0;
         reg_ALU_opcode = 3'b0;
         reg_ALU_optype = 1'b0;
         reg_concat_op = 5'b0;
+
+        result_counter = 2'b0;
     end
 
     always@(posedge dat_ready) begin //preserve to avoid dataloss
@@ -82,27 +84,102 @@ module ALU_top(
             5'b10111: decryptedOP = 5'd5; //BGEU branch greater than or equal unsigned
 
             //I/R
-            5'b00000: decryptedOP = 5'd6; //ADD/ADDI add DONE
-            5'b01000: decryptedOP = 5'd7; //SUB subtract DONE
-            5'b00001: decryptedOP = 5'd8; //SLL/SLLI logical leftshift DONE
+            5'b00000: decryptedOP = 5'd6; //ADD/ADDI add 
+            5'b01000: decryptedOP = 5'd7; //SUB subtract 
+            5'b00001: decryptedOP = 5'd8; //SLL/SLLI logical leftshift 
             5'b00010: decryptedOP = 5'd9; //SLT/SLTI set less than
             5'b00011: decryptedOP = 5'd10; //SLTU set less than unsigned
-            5'b00100: decryptedOP = 5'd11; //XOR/XORI xor DONE
-            5'b00101: decryptedOP = 5'd12; //SRL/SRLI logical rightshift DONE
-            5'b01101: decryptedOP = 5'd13; //SRA/SRAI arithmetic rightshift DONE
-            5'b00110: decryptedOP = 5'd14; //OR/ORI or DONE
-            5'b00111: decryptedOP = 5'd15; //AND/ANDI and DONE
+            5'b00100: decryptedOP = 5'd11; //XOR/XORI xor 
+            5'b00101: decryptedOP = 5'd12; //SRL/SRLI logical rightshift 
+            5'b01101: decryptedOP = 5'd13; //SRA/SRAI arithmetic rightshift 
+            5'b00110: decryptedOP = 5'd14; //OR/ORI or
+            5'b00111: decryptedOP = 5'd15; //AND/ANDI and
 
             default: decryptedOP = 5'dz; //invalid
         endcase
     end
 
-    //TODO
-    //need to implement 3 soc cycles after dat_ready to collect data according to decoded module
-    //ALU_out should be assigned to the output of the decoded module
+    reg [1:0] result_counter;
+    reg [31:0] AddSub_out;
+    reg [31:0] Comparator_out; //always 32b0
+    reg [31:0] LogOp_out;
+    reg [31:0] Shifter_out;
 
+    always@(posedge soc_clk) begin //counter output
+        if(dat_ready) begin
+            result_counter <= result_counter + 1;
+        end
+        if(result_counter == 0) begin //reset all outputs
+            ALU_out <= 32'b0;
+            ALU_overflow <= 1'b0;
+            ALU_zero <= 1'b0;
+            ALU_con_met <= 1'b0;
+        end
+        if(result_counter == 2) begin //output
+            if(decrypted_OP == 6 || decrypted_OP == 7) begin
+                ALU_out <= AddSub_out;
+                ALU_overflow <= AddSub_overflow;
+                ALU_zero <= AddSub_zero;
+            end
+            else if (decrypted_OP == 8 || decrypted_OP == 12 || decrypted_OP == 13) begin
+                ALU_out <= Shifter_out;
+            end
+            else if (decrypted_OP == 14 || decrypted_OP == 15 || decrypted_OP == 11) begin
+                ALU_out <= LogOp_out;
+            end
+            else if (decrypted_OP == 0 || decrypted_OP == 1 || decrypted_OP == 2 || decrypted_OP == 3 || decrypted_OP == 4 || decrypted_OP == 5 || decrypted_OP == 9 || decrypted_OP == 10) begin
+                ALU_out <= Comparator_out;
+                ALU_con_met <= Comparator_con_met;
+            end
+            else begin
+                ALU_out <= 32'b0;
+            end
+            result_counter = 0 
+        end
+    end
 
     //instantiations
-    
+    AddSub AS(
+        .soc_clk(soc_clk),
+        .reset(reset),
+        .dat_ready(dat_ready),
+        .ALU_dat1(reg_ALU_dat1),
+        .ALU_dat2(reg_ALU_dat2),
+        .decryptedOP(decryptedOP),
+        .AddSub_out(AddSub_out),
+        .AddSub_overflow(AddSub_overflow),
+        .AddSub_zero(AddSub_zero)
+    );
+
+    Comparator C(
+        .soc_clk(soc_clk),
+        .reset(reset),
+        .dat_ready(dat_ready),
+        .ALU_dat1(reg_ALU_dat1),
+        .ALU_dat2(reg_ALU_dat2),
+        .decryptedOP(decryptedOP),
+        .Comparator_out(Comparator_out),
+        .Comparator_con_met(Comparator_con_met)
+    );
+
+    LogOp LO(
+        .soc_clk(soc_clk),
+        .reset(reset),
+        .dat_ready(dat_ready),
+        .ALU_dat1(reg_ALU_dat1),
+        .ALU_dat2(reg_ALU_dat2),
+        .decryptedOP(decryptedOP),
+        .LogOp_out(LogOp_out)
+    );
+
+    Shifter S(
+        .soc_clk(soc_clk),
+        .reset(reset),
+        .dat_ready(dat_ready),
+        .ALU_dat1(reg_ALU_dat1),
+        .ALU_dat2(reg_ALU_dat2),
+        .decryptedOP(decryptedOP),
+        .Shifter_out(Shifter_out)
+    );
 
 endmodule
