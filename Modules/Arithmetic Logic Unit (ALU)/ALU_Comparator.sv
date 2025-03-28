@@ -5,7 +5,7 @@ module Comparator(
     input dat_ready,
     input [31:0] ALU_dat1,
     input [31:0] ALU_dat2,
-    input [3:0] decryptedOP,
+    input [4:0] decryptedOP,
     
     output reg Comparator_con_met,
     output reg [31:0] Comparator_out

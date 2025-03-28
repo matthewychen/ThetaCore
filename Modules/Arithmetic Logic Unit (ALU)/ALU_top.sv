@@ -13,35 +13,41 @@ module ALU_top(
         //1'b0 -> default state
         //1'b1 -> indicates SUB, SRA, or SRAI operation
 
-    input  ALU_optype, //
+    input ALU_optype, //
         //1'b1 -> I/R type (ALU_out needs calculation)
         //1'b0 -> B type (ALU_out redundant, all that is needed is branching flag)
 
     //flags
-    output ALU_overflow,
-    output ALU_con_met, //branching and SLTI flag
-    output ALU_zero,
+    output reg ALU_overflow,
+    output reg ALU_con_met, //branching and SLTI flag
+    output reg ALU_zero,
+    output reg ALU_err,
 
     //to CU
     output reg [31:0] ALU_out
     );
 
     //for storage to mitigate data loss
-    reg [31:0] reg_ALU_dat1,
-    reg [31:0] reg_ALU_dat2,
-    reg [2:0] reg_ALU_opcode,
-    reg  reg_ALU_optype, 
+    reg [31:0] reg_ALU_dat1;
+    reg [31:0] reg_ALU_dat2;
+    reg [2:0] reg_ALU_opcode;
+    reg  reg_ALU_optype;
     reg [4:0] reg_concat_op;
 
-    reg[3:0] decryptedOP;
+    reg[4:0] decryptedOP;
+    reg [1:0] result_counter;
     
+    reg [31:0] AddSub_out;
+    reg [31:0] Comparator_out; //always 32b0
+    reg [31:0] LogOp_out;
+    reg [31:0] Shifter_out;
 
     initial begin
-        ALU_underflow = 1'b0;
         ALU_overflow = 1'b0;
         ALU_con_met = 1'b0;
         ALU_zero = 1'b0;
-        ALU_negative = 1'b0;
+        ALU_err = 1'b0;
+
         ALU_out <= 32'b0;
 
         reg_ALU_dat1 = 32'b0;
@@ -60,7 +66,7 @@ module ALU_top(
         reg_ALU_optype <= ALU_optype;
     end
 
-    always@(negedge dat_ready or posedge reset_b) begin //reset on data no longer ready
+    always@(negedge dat_ready or posedge reset) begin //reset on data no longer ready
         reg_ALU_dat1 <= 0;
         reg_ALU_dat2 <= 0;
         reg_ALU_opcode <= 0;
@@ -68,7 +74,7 @@ module ALU_top(
     end
 
     always@(reg_ALU_optype, ALU_opcode_differentiator, reg_ALU_opcode) begin
-        reg_concat_op = {reg_ALU_optype, ALU_opcode_differentiator, reg_ALU_opcode};
+        reg_concat_op <= {reg_ALU_optype, ALU_opcode_differentiator, reg_ALU_opcode};
     end
 
     //decryptor
@@ -95,46 +101,43 @@ module ALU_top(
             5'b00110: decryptedOP = 5'd14; //OR/ORI or
             5'b00111: decryptedOP = 5'd15; //AND/ANDI and
 
-            default: decryptedOP = 5'dz; //invalid
+            default: decryptedOP = 5'd16; //throw error flag
         endcase
     end
 
-    reg [1:0] result_counter;
-    reg [31:0] AddSub_out;
-    reg [31:0] Comparator_out; //always 32b0
-    reg [31:0] LogOp_out;
-    reg [31:0] Shifter_out;
-
     always@(posedge soc_clk) begin //counter output
         if(dat_ready) begin
-            result_counter <= result_counter + 1;
-        end
-        if(result_counter == 0) begin //reset all outputs
-            ALU_out <= 32'b0;
-            ALU_overflow <= 1'b0;
-            ALU_zero <= 1'b0;
-            ALU_con_met <= 1'b0;
-        end
-        if(result_counter == 2) begin //output
-            if(decrypted_OP == 6 || decrypted_OP == 7) begin
-                ALU_out <= AddSub_out;
-                ALU_overflow <= AddSub_overflow;
-                ALU_zero <= AddSub_zero;
-            end
-            else if (decrypted_OP == 8 || decrypted_OP == 12 || decrypted_OP == 13) begin
-                ALU_out <= Shifter_out;
-            end
-            else if (decrypted_OP == 14 || decrypted_OP == 15 || decrypted_OP == 11) begin
-                ALU_out <= LogOp_out;
-            end
-            else if (decrypted_OP == 0 || decrypted_OP == 1 || decrypted_OP == 2 || decrypted_OP == 3 || decrypted_OP == 4 || decrypted_OP == 5 || decrypted_OP == 9 || decrypted_OP == 10) begin
-                ALU_out <= Comparator_out;
-                ALU_con_met <= Comparator_con_met;
-            end
-            else begin
+            if(result_counter == 0 || result_counter == 1 || result_counter == 2) begin //reset all outputs
                 ALU_out <= 32'b0;
+                ALU_overflow <= 1'b0;
+                ALU_zero <= 1'b0;
+                ALU_con_met <= 1'b0;
+                result_counter <= result_counter + 1;
             end
-            result_counter = 0 
+            if(result_counter == 3) begin //output
+                if(decryptedOP == 6 || decryptedOP == 7) begin
+                    ALU_out <= AddSub_out;
+                    ALU_overflow <= AddSub_overflow;
+                    ALU_zero <= AddSub_zero;
+                end
+                else if (decryptedOP == 8 || decryptedOP == 12 || decryptedOP == 13) begin
+                    ALU_out <= Shifter_out;
+                end
+                else if (decryptedOP == 14 || decryptedOP == 15 || decryptedOP == 11) begin
+                    ALU_out <= LogOp_out;
+                end
+                else if (decryptedOP == 0 || decryptedOP == 1 || decryptedOP == 2 || decryptedOP == 3 || decryptedOP == 4 || decryptedOP == 5 || decryptedOP == 9 || decryptedOP == 10) begin
+                    ALU_out <= Comparator_out;
+                    ALU_con_met <= Comparator_con_met;
+                end
+                else if (decryptedOP == 16) begin //throw $finish in CU
+                    ALU_err <= 1'b1;
+                end
+                else begin
+                    ALU_out <= 32'b0;
+                end
+                result_counter <= 0;
+            end
         end
     end
 

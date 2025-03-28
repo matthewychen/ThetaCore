@@ -4,7 +4,7 @@ module Logop(
     input dat_ready,
     input [31:0] ALU_dat1,
     input [31:0] ALU_dat2,
-    input [3:0] decryptedOP,
+    input [4:0] decryptedOP,
 
     output reg [31:0] LogOp_out,
     //no flags

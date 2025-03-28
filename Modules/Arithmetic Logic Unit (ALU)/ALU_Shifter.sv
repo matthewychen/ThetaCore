@@ -5,7 +5,7 @@ module Shifter(
     input dat_ready,
     input [31:0] ALU_dat1,
     input [31:0] ALU_dat2, //SHAMT: use only lower 5 bits. when formatting rs2 in ALU preprocessing, make sure to use lower bits as well
-    input [3:0] decryptedOP,
+    input [4:0] decryptedOP,
 
     output [31:0] Shifter_out
 );

@@ -6,7 +6,7 @@ module AddSub(
     input dat_ready,
     input [31:0] ALU_dat1,
     input [31:0] ALU_dat2,
-    input [3:0] decryptedOP,
+    input [4:0] decryptedOP,
 
     output [31:0] AddSub_out,
 
@@ -46,7 +46,7 @@ assign AddSub_zero = ~(|AddSub_superint[31:0]);
 
 //instantiations
 //ADDSUB
-rippleadder RA(
+rippleadder RA( //comb blocks
     .A(RA_dat1),
     .B(RA_dat2),
     .SUM(AddSub_superint)
