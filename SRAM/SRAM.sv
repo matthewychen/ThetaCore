@@ -20,6 +20,7 @@ initial begin
     WL_sel = 128'd0;
     SRAMAddress_byte_sel = 4'd0;
     flg_complete = 0;
+    dataout = 32'd0;
 end
 
 always @(posedge read_pulse or posedge write_pulse) begin
@@ -45,7 +46,7 @@ generate
         );
     end
 endgenerate
-
+/
 always@(*) begin
     dataout <= dataout_array[addr_sel];
     flg_complete = 1;

@@ -36,6 +36,8 @@ module tb_top;
         read_pulse = 0;
         write_pulse = 0;
         mbyte = 4'b1111;
+        dataout = 32'h00000000;
+
         #1;
 
         // Open and load data file
