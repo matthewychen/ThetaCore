@@ -8,7 +8,7 @@ module ControlUnit(
     //module to handle flag from branch command,
     //32x general purpose registers, special registers PC (needs to be able to handle jal/jalr), IR, MDR, MAR, TEMP,
     //decode functionality to handle add/addi register placement
-    //pipelining override
+    //pipelining override #################### important dont forget. use signal from IDU_top
     //branch command handler:
     //on negedge
 

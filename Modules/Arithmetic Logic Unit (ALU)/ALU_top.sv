@@ -34,7 +34,7 @@ module ALU_top(
     reg  reg_ALU_optype;
     reg [4:0] reg_concat_op;
 
-    reg[4:0] decryptedOP;
+    reg [4:0] decryptedOP;
     reg [1:0] result_counter;
     
     reg [31:0] AddSub_out;
