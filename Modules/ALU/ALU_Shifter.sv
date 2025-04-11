@@ -5,7 +5,7 @@ module Shifter(
     input dat_ready,
     input [31:0] ALU_dat1,
     input [31:0] ALU_dat2, //SHAMT: use only lower 5 bits. when formatting rs2 in ALU preprocessing, make sure to use lower bits as well
-    input [4:0] decryptedOP,
+    input [4:0] Instruction_to_ALU,
 
     output [31:0] Shifter_out
 );
@@ -15,15 +15,15 @@ always@(posedge soc_clk) begin
         Shifter_out <= 32'b0;
     end
     else begin
-        if (decryptedOP == 8) begin //SLL
+        if (Instruction_to_ALU == 8) begin //SLL
             Shifter_out <= ALU_dat1 << ALU_dat2[4:0];
         end
 
-        else if (decryptedOP == 12) begin //SRL
+        else if (Instruction_to_ALU == 12) begin //SRL
             Shifter_out <= ALU_dat1 >> ALU_dat2[4:0];
         end
 
-        else if (decryptedOP == 13) begin //SRA
+        else if (Instruction_to_ALU == 13) begin //SRA
             Shifter_out <= $signed(ALU_dat1) >>> ALU_dat2[4:0];
         end
         

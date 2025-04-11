@@ -5,7 +5,7 @@ module Comparator(
     input dat_ready,
     input [31:0] ALU_dat1,
     input [31:0] ALU_dat2,
-    input [4:0] decryptedOP,
+    input [4:0] Instruction_to_ALU,
     
     output reg Comparator_con_met,
     output reg [31:0] Comparator_out
@@ -20,7 +20,7 @@ always@(posedge soc_clk) begin
     if (reset || ~dat_ready) begin
         Comparator_con_met <= 1'b0;
     end
-    else if (decryptedOP == 0) begin //BEQ
+    else if (Instruction_to_ALU == 0) begin //BEQ
         if(ALU_dat1 == ALU_dat2) begin
             Comparator_con_met <= 1'b1;
         end
@@ -28,7 +28,7 @@ always@(posedge soc_clk) begin
             Comparator_con_met <= 1'b0;
         end
     end
-    else if (decryptedOP == 1) begin //BNE
+    else if (Instruction_to_ALU == 1) begin //BNE
         if(ALU_dat1 != ALU_dat2) begin
             Comparator_con_met <= 1'b1;
         end
@@ -36,7 +36,7 @@ always@(posedge soc_clk) begin
             Comparator_con_met <= 1'b0;
         end
     end
-    else if (decryptedOP == 2) begin //BLT
+    else if (Instruction_to_ALU == 2) begin //BLT
         if($signed(ALU_dat1) < $signed(ALU_dat2)) begin
             Comparator_con_met <= 1'b1;
         end
@@ -44,7 +44,7 @@ always@(posedge soc_clk) begin
             Comparator_con_met <= 1'b0;
         end
     end
-    else if (decryptedOP == 3) begin //BGE
+    else if (Instruction_to_ALU == 3) begin //BGE
         if($signed(ALU_dat1) >= $signed(ALU_dat2)) begin
             Comparator_con_met <= 1'b1;
         end
@@ -52,7 +52,7 @@ always@(posedge soc_clk) begin
             Comparator_con_met <= 1'b0;
         end
     end
-    else if (decryptedOP == 4) begin //BLTU
+    else if (Instruction_to_ALU == 4) begin //BLTU
         if(ALU_dat1 < ALU_dat2) begin
             Comparator_con_met <= 1'b1;
         end
@@ -60,7 +60,7 @@ always@(posedge soc_clk) begin
             Comparator_con_met <= 1'b0;
         end
     end
-    else if (decryptedOP == 5) begin //BGEU
+    else if (Instruction_to_ALU == 5) begin //BGEU
         if(ALU_dat1 >= ALU_dat2) begin
             Comparator_con_met <= 1'b1;
         end
@@ -68,7 +68,7 @@ always@(posedge soc_clk) begin
             Comparator_con_met <= 1'b0;
         end
     end
-    else if (decryptedOP == 9) begin //SLT/SLTI
+    else if (Instruction_to_ALU == 9) begin //SLT/SLTI
         if($signed(ALU_dat1) < $signed(ALU_dat2)) begin
             Comparator_con_met <= 1'b1;
         end
@@ -76,7 +76,7 @@ always@(posedge soc_clk) begin
             Comparator_con_met <= 1'b0;
         end
     end
-    else if (decryptedOP == 10) begin //SLTU/SLTIU
+    else if (Instruction_to_ALU == 10) begin //SLTU/SLTIU
         if(ALU_dat1 < ALU_dat2) begin
             Comparator_con_met <= 1'b1;
         end

@@ -6,7 +6,7 @@ module AddSub(
     input dat_ready,
     input [31:0] ALU_dat1,
     input [31:0] ALU_dat2,
-    input [4:0] decryptedOP,
+    input [4:0] Instruction_to_ALU,
 
     output [31:0] AddSub_out,
 
@@ -25,11 +25,11 @@ always@(posedge soc_clk) begin
         RA_dat2 <= 32'b0;
     end
     else begin
-        if (decryptedOP == 6) begin
+        if (Instruction_to_ALU == 6) begin
             RA_dat1 <= ALU_dat1;
             RA_dat2 <= ALU_dat2;
         end
-        else if (decryptedOP == 7) begin
+        else if (Instruction_to_ALU == 7) begin
             RA_dat1 <= ALU_dat1;
             RA_dat2 <= TC_dat2;
         end

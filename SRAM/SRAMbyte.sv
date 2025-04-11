@@ -24,14 +24,14 @@ always@(*) begin
     end
 end
 
-genvar i;
+genvar k;
 generate
-    for (i = 0; i < 8; i = i + 1) begin : SRAM_cells
+    for (k = 0; k < 8; k = k + 1) begin : SRAM_cells
         SRAMcell SRAMcell_inst(
             .WL(WL),
-            .BL1in(BL1in[i]),
-            .BL2in(BL2in[i]),
-            .BL1out(BL1out[i]),
+            .BL1in(BL1in[k]),
+            .BL2in(BL2in[k]),
+            .BL1out(BL1out[k]),
             .read_pulse(read_pulse),
             .write_pulse(write_pulse)
         );

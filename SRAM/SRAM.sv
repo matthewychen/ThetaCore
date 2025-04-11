@@ -46,7 +46,7 @@ generate
         );
     end
 endgenerate
-/
+
 always@(*) begin
     dataout <= dataout_array[addr_sel];
     flg_complete = 1;
