@@ -17,7 +17,7 @@ module AddSub(
 reg [31:0] RA_dat1;
 reg [31:0] RA_dat2;
 wire [31:0] TC_dat2;
-wire [32:0] AddSub_superint;
+wire [32:0] AddSub_int;
 
 always@(posedge soc_clk) begin
     if (reset || ~dat_ready) begin
@@ -40,16 +40,16 @@ always@(posedge soc_clk) begin
     end
 end
 
-assign AddSub_out = AddSub_superint[31:0];
-assign AddSub_overflow = AddSub_superint[32];
-assign AddSub_zero = ~(|AddSub_superint[31:0]);
+assign AddSub_out = AddSub_int[31:0];
+assign AddSub_overflow = ((~RA_dat1[31] & RA_dat2[31] & AddSub_int[31]) || (RA_dat1[31] & ~RA_dat2[31] & ~AddSub_int[31]));
+assign AddSub_zero = ~(|AddSub_int[31:0]);
 
 //instantiations
 //ADDSUB
 rippleadder RA( //comb blocks
     .A(RA_dat1),
     .B(RA_dat2),
-    .SUM(AddSub_superint)
+    .SUM(AddSub_int)
 );
 
 twoscomp TC(

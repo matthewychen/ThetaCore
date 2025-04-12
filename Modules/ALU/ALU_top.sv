@@ -16,7 +16,7 @@ module ALU_top(
     input ALU_optype, //
         //1'b1 -> I/R type (ALU_out needs calculation)
         //1'b0 -> B type (ALU_out redundant, all that is needed is branching flag)
-    input Instruction_to_ALU,
+    input [4:0] Instruction_to_ALU,
 
     //flags
     output reg ALU_overflow,
@@ -36,7 +36,6 @@ module ALU_top(
     reg  reg_ALU_optype;
     reg [4:0] reg_concat_op;
 
-    reg [4:0] Instruction_to_ALU;
     reg [1:0] ALU_result_counter;
     
     reg [31:0] AddSub_out;
@@ -133,7 +132,6 @@ module ALU_top(
                 else if (Instruction_to_ALU == 0 || Instruction_to_ALU == 1 || Instruction_to_ALU == 2 || Instruction_to_ALU == 3 || Instruction_to_ALU == 4 || Instruction_to_ALU == 5 || Instruction_to_ALU == 9 || Instruction_to_ALU == 10) begin
                     ALU_out <= Comparator_out;
                     ALU_con_met <= Comparator_con_met;
-                    ALU_out <= 1;
                 end
                 else if (Instruction_to_ALU == 16) begin //no operation
                     ALU_out <= 32'b0;

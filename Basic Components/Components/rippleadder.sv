@@ -13,7 +13,7 @@ module rippleadder (
                 fulladder FA (
                     .a    (A[i]),
                     .b    (B[i]),
-                    .cin  (0),
+                    .cin  (1'b0),
                     .sum  (SUM[i]),
                     .cout (c[i])
                 );

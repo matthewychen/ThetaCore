@@ -1,4 +1,4 @@
-module Logop(
+module LogOp(
     input soc_clk,
     input reset,
     input dat_ready,
@@ -16,15 +16,14 @@ always@(posedge soc_clk) begin
     end
     else begin
         if (Instruction_to_ALU == 15) begin //AND
-            LogOp_out <= ALU_dat1 && ALU_dat2;
-
+            LogOp_out <= ALU_dat1 & ALU_dat2;
         end
         else if (Instruction_to_ALU == 14) begin //OR
-            LogOp_out <= ALU_dat1 || ALU_dat2;
+            LogOp_out <= ALU_dat1 | ALU_dat2;
 
         end
         else if (Instruction_to_ALU == 11) begin //XOR
-            LogOp_out <= ALU_dat1 ^^ ALU_dat2;
+            LogOp_out <= ALU_dat1 ^ ALU_dat2;
 
         end
         else begin //invalid
