@@ -14,6 +14,8 @@ module ControlUnit(
 
     //$finish on posedge ALU_err or CU unable to decode
 
+    //for JALR and JAL, make sure to stall and wait for those instructions to finish before proceeding
+
     input [31:0] CU_in,
     output [31:0] CU_out
 );

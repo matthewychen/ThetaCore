@@ -4,20 +4,20 @@ LUI // 0
 AUIPC // 1
 JAL // 2
 JALR // 3
-BEQ // 
-BNE // 
-BLT // 
-BGE // 
-BLTU // 
-BGEU // 
+BEQ // 4
+BNE // 5
+BLT // 6
+BGE // 7
+BLTU // 8
+BGEU // 9
 LB // 
 LH // 
 LW // 
 LBU // 
 LHU // 
-SB // 
-SH // 
-SW // 
+SB // 10
+SH // 11
+SW // 12
 ADDI // 
 SLTI // 
 SLTIU // 

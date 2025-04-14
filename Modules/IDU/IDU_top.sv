@@ -113,7 +113,6 @@ module IDU_top(
                     pc_increment <= 4;
                     Instruction_to_CU <= 0;
                     invalid_instruction <= 0;
-                    pipeline_override <= 0;
                 end
                 4'd1: begin//AUIPC U
                     imm <= {reg_instruction[31:12], 12{1'b0}};
@@ -124,7 +123,6 @@ module IDU_top(
                     pc_increment <= 4;
                     Instruction_to_CU <= 1;
                     invalid_instruction <= 0;
-                    pipeline_override <= 0;
                 end
                 4'd2: begin//JAL J
                     imm <= 32'b0;
@@ -132,25 +130,52 @@ module IDU_top(
                     rs1 <= 5'bz;
                     rs2 <= 5'bz;
                     shamt <= 5'bz;
-                    pc_increment <= {11'b0, reg_instruction[20], reg_instruction[10:1], reg_instruction[11], reg_instruction[19:12],1'b0}; //note the ending with 1'b0 as jumps must be aligned to the nearest 2 bytes to accommodate for R16 instructions.
+                    pc_increment <= {11{reg_instruction[31]}, reg_instruction[31], reg_instruction[19:12], reg_instruction[20], reg_instruction[30:21],1'b0}; //note the ending with 1'b0 as jumps must be aligned to the nearest 2 bytes to accommodate for R16 instructions.
                     Instruction_to_CU <= 2;
                     invalid_instruction <= 0;
-                    pipeline_override <= 0;
                 end
                 4'd3: begin//JALR J
-                    imm <= 32'b0;
+                    imm <= {20{reg_instruction[31]}, reg_instruction{31:20}}; //same logic as above, but note that the lsb does not need to be 0 as rs1 + imm can both be odd and result in an even address. if it doesn't, make sure to cut off the last bit.
                     rd <= reg_instruction[11:7];
                     rs1 <= reg_instruction[19:15];
                     rs2 <= 5'bz;
                     shamt <= 5'bz;
-                    pc_increment <= {19'b0, reg_instruction[11:0], 1'b0}; //same logic as above
+                    pc_increment <= 4;
                     Instruction_to_CU <= 3;
                     invalid_instruction <= 0;
-                    pipeline_override <= 0;
                 end
                 4'd4: begin//B
+                    imm <= {19{reg_instruction[31]}, reg_instruction[31], reg_instruction[7], reg_instruction[30:25], reg_instruction[11:8], 1'b0};
+                    rd <= 5'bz;
+                    rs1 <= reg_instruction[19:15];
+                    rs2 <= reg_instruction[24:20];
+                    shamt <= 5'bz;
+                    pc_increment <= 4;
+                    invalid_instruction <= 0;
+                    case(reg_instruction[14:12])
+                        3'b000: Instruction_to_CU <= 4; //beq
+                        3'b001: Instruction_to_CU <= 5; //bne
+                        3'b100: Instruction_to_CU <= 6; //blt
+                        3'b101: Instruction_to_CU <= 7; //bge
+                        3'b110: Instruction_to_CU <= 8; //bltu
+                        3'b111: Instruction_to_CU <= 9; //bgeu
+                        default: invalid_instruction <= 1;
+                    endcase
                 end
                 4'd5: begin//S
+                    imm <= {20{reg_instruction[31]}, reg_instruction[31], reg_instruction[30:25], reg_instruction[11:7]};
+                    rd <= 5'bz;
+                    rs1 <= reg_instruction[19:15];
+                    rs2 <= reg_instruction[24:20];
+                    shamt <= 5'bz;
+                    pc_increment <= 4;
+                    invalid_instruction <= 0;
+                    case(reg_instruction[14:12])
+                        3'b000: Instruction_to_CU <= 10; //sb
+                        3'b001: Instruction_to_CU <= 11; //sh
+                        3'b010: Instruction_to_CU <= 12; //sw
+                        default: invalid_instruction <= 1;
+                    endcase
                 end
                 4'd6: begin//IG1 I
                 end
