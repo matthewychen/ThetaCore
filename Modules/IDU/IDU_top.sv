@@ -49,7 +49,7 @@ module IDU_top(
     reg [1:0] IDU_result_counter;
 
     initial begin
-        decryptedOPtype <= 11;
+        decryptedOPtype <= 12;
         imm <= 32'bz;
         rd <= 5'bz;
         rs1 <= 5'bz;
@@ -78,7 +78,7 @@ module IDU_top(
     end
 
     always@(reg_instruction) begin //update optype
-        casez(reg_instruction[6:0]) //note use of caseZ
+        casez(reg_instruction[6:0])
             7'b0110111: decryptedOPtype = 0;
             7'b0010111: decryptedOPtype = 1;
 
@@ -92,9 +92,10 @@ module IDU_top(
             7'b0010011: decryptedOPtype = 7;
             7'b0110011: decryptedOPtype = 8;
 
-            7'b1110011: decryptedOPtype = 9; //ecall/ebreak
+            7'b1110011: decryptedOPtype = 9; //fence
+            7'b1110011: decryptedOPtype = 10; //ecall/ebreak
             
-            default: decryptedOPtype = 10; //error case
+            default: decryptedOPtype = 11; //error case
         endcase
     end
 
@@ -183,11 +184,13 @@ module IDU_top(
                 end
                 4'd8: begin//R
                 end
-                4'd9: begin//ECALL/EBREAK
+                4'd9: begin//FENCE/FENCE.I
                 end
-                4'd11: begin//INITIALIZED
+                4'd10: begin//ECALL/EBREAK
                 end
-                default: begin //ERROR. should catch 10 case
+                4'd12: begin//INITIALIZED
+                end
+                default: begin //ERROR. should catch 11 case
                     $finish;
                 end
             endcase

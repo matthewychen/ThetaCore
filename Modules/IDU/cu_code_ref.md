@@ -39,5 +39,7 @@ OR //
 AND // 
 ECALL // 
 EBREAK // 
+FENCE // 
+FENCE.I // 
 
 ERROR/FINISH // 
