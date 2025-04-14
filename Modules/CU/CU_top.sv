@@ -6,7 +6,7 @@ module ControlUnit(
     //need 
     //ports to ALU in1 in2 set, 
     //module to handle flag from branch command,
-    //32x general purpose registers, special registers PC (needs to be able to handle jal/jalr), IR, MDR, MAR, TEMP,
+    //32x general purpose registers, special registers PC (needs to be able to handle jal/jalr), IR, MDR, MAR, TEMP. dont use sram, just use builtin... sram is too much of a headache and would add additional lag
     //decode functionality to handle add/addi register placement
     //pipelining override #################### important dont forget. use signal from IDU_top
     //branch command handler:
