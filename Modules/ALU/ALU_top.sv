@@ -118,6 +118,7 @@ module ALU_top(
                 ALU_result_counter <= ALU_result_counter + 1;
             end
             if(ALU_result_counter == 3) begin //output
+                ALU_ready <= 1;
                 if(Instruction_to_ALU == 6 || Instruction_to_ALU == 7) begin
                     ALU_out <= AddSub_out;
                     ALU_overflow <= AddSub_overflow;
@@ -138,6 +139,9 @@ module ALU_top(
                 end
                 ALU_result_counter <= 0;
             end
+        end
+        else begin
+            ALU_ready <= 0;
         end
     end
 
