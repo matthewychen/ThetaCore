@@ -25,11 +25,11 @@ module IDU_top(
     output reg [31:0] pc_increment,
 
     //flags
-    output reg [1:0] pipeline_override;
+    output reg [1:0] pipeline_override,
     //00 -> no override
     //01 -> override rs1
     //10 -> override rs2
-    output reg invalid_instruction;
+    output reg invalid_instruction
 );
 
 reg [3:0] decryptedOPtype;
@@ -48,6 +48,14 @@ reg [3:0] decryptedOPtype;
 //12 -> initial
 
 reg [1:0] IDU_result_counter;
+
+//save instruction in register
+reg [31:0] reg_instruction;
+always@(posedge Fetch_ready) begin
+    if(!reset) begin
+        reg_instruction <= instruction;
+    end
+end
 
 initial begin
     decryptedOPtype <= 12;
@@ -69,12 +77,6 @@ initial begin
     reg_instruction <= 0;
     IDU_result_counter <= 0;
     //set all output regs to default/deasserted state
-end
-
-//save instruction in register
-reg [31:0] reg_instruction;
-always@(posedge Fetch_ready) begin
-    reg_instruction <= instruction;
 end
 
 always@(reg_instruction) begin //update optype
@@ -102,217 +104,235 @@ end
 always@(decryptedOPtype) begin
     case(decryptedOPtype)
         4'd0: begin //LUI U
-            imm <= {reg_instruction[31:12], 12{1'b0}};
-            rd <= reg_instruction[11:7];
-            rs1 <= 5'bz;
-            rs2 <= 5'bz;
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            Instruction_to_CU <= 0;
-            invalid_instruction <= 0;
+            imm = {reg_instruction[31:12], {12{1'b0}}};
+            rd = reg_instruction[11:7];
+            rs1 = 5'bz;
+            rs2 = 5'bz;
+            shamt = 5'bz;
+            pc_increment = 4;
+            Instruction_to_CU = 0;
+            invalid_instruction = 0;
         end
         4'd1: begin//AUIPC U
-            imm <= {reg_instruction[31:12], 12{1'b0}};
-            rd <= reg_instruction[11:7];
-            rs1 <= 5'bz;
-            rs2 <= 5'bz;
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            Instruction_to_CU <= 1;
-            invalid_instruction <= 0;
+            imm = {reg_instruction[31:12], {12{1'b0}}};
+            rd = reg_instruction[11:7];
+            rs1 = 5'bz;
+            rs2 = 5'bz;
+            shamt = 5'bz;
+            pc_increment = 4;
+            Instruction_to_CU = 1;
+            invalid_instruction = 0;
         end
         4'd2: begin//JAL J
-            imm <= 32'b0;
-            rd <= reg_instruction[11:7];
-            rs1 <= 5'bz;
-            rs2 <= 5'bz;
-            shamt <= 5'bz;
-            pc_increment <= {{11{reg_instruction[31]}}, reg_instruction[31], reg_instruction[19:12], reg_instruction[20], reg_instruction[30:21],1'b0}; //note the ending with 1'b0 as jumps must be aligned to the nearest 2 bytes to accommodate for R16 instructions.
-            Instruction_to_CU <= 2;
-            invalid_instruction <= 0;
+            imm = 32'b0;
+            rd = reg_instruction[11:7];
+            rs1 = 5'bz;
+            rs2 = 5'bz;
+            shamt = 5'bz;
+            pc_increment = {{11{reg_instruction[31]}}, reg_instruction[31], reg_instruction[19:12], reg_instruction[20], reg_instruction[30:21],1'b0}; //note the ending with 1'b0 as jumps must be aligned to the nearest 2 bytes to accommodate for R16 instructions.
+            Instruction_to_CU = 2;
+            invalid_instruction = 0;
         end
         4'd3: begin//JALR J
-            imm <= {20{reg_instruction[31]}, reg_instruction{31:20}}; //same logic as above, but note that the lsb does not need to be 0 as rs1 + imm can both be odd and result in an even address. if it doesn't, make sure to cut off the last bit.
-            rd <= reg_instruction[11:7];
-            rs1 <= reg_instruction[19:15];
-            rs2 <= 5'bz;
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            Instruction_to_CU <= 3;
-            invalid_instruction <= 0;
+            imm = {{20{reg_instruction[31]}}, reg_instruction[31:20]}; //same logic as above, but note that the lsb does not need to be 0 as rs1 + imm can both be odd and result in an even address. if it doesn't, make sure to cut off the last bit.
+            rd = reg_instruction[11:7];
+            rs1 = reg_instruction[19:15];
+            rs2 = 5'bz;
+            shamt = 5'bz;
+            pc_increment = 4;
+            Instruction_to_CU = 3;
+            invalid_instruction = 0;
         end
         4'd4: begin//B
-            imm <= {{19{reg_instruction[31]}}, reg_instruction[31], reg_instruction[7], reg_instruction[30:25], reg_instruction[11:8], 1'b0};
-            rd <= 5'bz;
-            rs1 <= reg_instruction[19:15];
-            rs2 <= reg_instruction[24:20];
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            invalid_instruction <= 0;
+            imm = {{19{reg_instruction[31]}}, reg_instruction[31], reg_instruction[7], reg_instruction[30:25], reg_instruction[11:8], 1'b0};
+            rd = 5'bz;
+            rs1 = reg_instruction[19:15];
+            rs2 = reg_instruction[24:20];
+            shamt = 5'bz;
+            pc_increment = 4;
+            invalid_instruction = 0;
             case(reg_instruction[14:12])
-                3'b000: Instruction_to_CU <= 4; //beq
-                3'b001: Instruction_to_CU <= 5; //bne
-                3'b100: Instruction_to_CU <= 6; //blt
-                3'b101: Instruction_to_CU <= 7; //bge
-                3'b110: Instruction_to_CU <= 8; //bltu
-                3'b111: Instruction_to_CU <= 9; //bgeu
-                default: invalid_instruction <= 1;
+                3'b000: Instruction_to_CU = 4; //beq
+                3'b001: Instruction_to_CU = 5; //bne
+                3'b100: Instruction_to_CU = 6; //blt
+                3'b101: Instruction_to_CU = 7; //bge
+                3'b110: Instruction_to_CU = 8; //bltu
+                3'b111: Instruction_to_CU = 9; //bgeu
+                default: invalid_instruction = 1;
             endcase
         end
         4'd5: begin//S
-            imm <= {{20{reg_instruction[31]}}, reg_instruction[31], reg_instruction[30:25], reg_instruction[11:7]};
-            rd <= 5'bz;
-            rs1 <= reg_instruction[19:15];
-            rs2 <= reg_instruction[24:20];
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            invalid_instruction <= 0;
+            imm = {{20{reg_instruction[31]}}, reg_instruction[31], reg_instruction[30:25], reg_instruction[11:7]};
+            rd = 5'bz;
+            rs1 = reg_instruction[19:15];
+            rs2 = reg_instruction[24:20];
+            shamt = 5'bz;
+            pc_increment = 4;
+            invalid_instruction = 0;
             case(reg_instruction[14:12])
-                3'b000: Instruction_to_CU <= 10; //sb
-                3'b001: Instruction_to_CU <= 11; //sh
-                3'b010: Instruction_to_CU <= 12; //sw
-                default: invalid_instruction <= 1;
+                3'b000: Instruction_to_CU = 10; //sb
+                3'b001: Instruction_to_CU = 11; //sh
+                3'b010: Instruction_to_CU = 12; //sw
+                default: invalid_instruction = 1;
             endcase
         end
         4'd6: begin//IG1 I (load)
-            imm <= {20{reg_instruction[31]}, reg_instruction[31:20]};
-            rd <= reg_instruction[11:7];
-            rs1 <= reg_instruction[19:15];
-            rs2 <= 5'bz;
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            invalid_instruction <= 0;
+            imm = {{20{reg_instruction[31]}}, reg_instruction[31:20]};
+            rd = reg_instruction[11:7];
+            rs1 = reg_instruction[19:15];
+            rs2 = 5'bz;
+            shamt = 5'bz;
+            pc_increment = 4;
+            invalid_instruction = 0;
             case(reg_instruction[14:12])
-                3'b000: Instruction_to_CU <= 13; //lb
-                3'b001: Instruction_to_CU <= 14; //lh
-                3'b010: Instruction_to_CU <= 15; //lw
-                3'b100: Instruction_to_CU <= 16; //lbu
-                3'b101: Instruction_to_CU <= 17; //lhu
-                default: invalid_instruction <= 1;
+                3'b000: Instruction_to_CU = 13; //lb
+                3'b001: Instruction_to_CU = 14; //lh
+                3'b010: Instruction_to_CU = 15; //lw
+                3'b100: Instruction_to_CU = 16; //lbu
+                3'b101: Instruction_to_CU = 17; //lhu
+                default: invalid_instruction = 1;
             endcase
         end
         4'd7: begin//IG2 I (calc)
-            rd <= reg_instruction[11:7];
-            rs1 <= reg_instruction[19:15];
-            rs2 <= 5'bz;
-            pc_increment <= 4;
-            invalid_instruction <= 0;
+            rd = reg_instruction[11:7];
+            rs1 = reg_instruction[19:15];
+            rs2 = 5'bz;
+            pc_increment = 4;
+            invalid_instruction = 0;
             case(reg_instruction[14:12])
-                3'b000 begin //addi
-                    Instruction_to_CU <= 18; 
-                    imm <= {20{reg_instruction[31]}, reg_instruction[31:20]};
-                    shamt <= 5'bz;
+                3'b000: begin //addi
+                    Instruction_to_CU = 18; 
+                    imm = {{20{reg_instruction[31]}}, reg_instruction[31:20]};
+                    shamt = 5'bz;
                 end
-                3'b010 begin //slti
-                    Instruction_to_CU <= 19; 
-                    imm <= {20{reg_instruction[31]}, reg_instruction[31:20]};
-                    shamt <= 5'bz;
+                3'b010: begin //slti
+                    Instruction_to_CU = 19; 
+                    imm = {{20{reg_instruction[31]}}, reg_instruction[31:20]};
+                    shamt = 5'bz;
                 end
-                3'b011 begin //sltiu
-                    Instruction_to_CU <= 20; 
-                    imm <= {20{reg_instruction[31]}, reg_instruction[31:20]};
-                    shamt <= 5'bz;
+                3'b011: begin //sltiu
+                    Instruction_to_CU = 20; 
+                    imm = {{20{reg_instruction[31]}}, reg_instruction[31:20]};
+                    shamt = 5'bz;
                 end
-                3'b100 begin //xori
-                    Instruction_to_CU <= 21;
-                    imm <= {20{reg_instruction[31]}, reg_instruction[31:20]};
-                    shamt <= 5'bz;
+                3'b100: begin //xori
+                    Instruction_to_CU = 21;
+                    imm = {{20{reg_instruction[31]}}, reg_instruction[31:20]};
+                    shamt = 5'bz;
                 end
-                3'b110 begin //ori
-                    Instruction_to_CU <= 22;
-                    imm <= {20{reg_instruction[31]}, reg_instruction[31:20]};
-                    shamt <= 5'bz;
+                3'b110: begin //ori
+                    Instruction_to_CU = 22;
+                    imm = {{20{reg_instruction[31]}}, reg_instruction[31:20]};
+                    shamt = 5'bz;
                 end
-                3'b111 begin //andi
-                    Instruction_to_CU <= 23;
-                    imm <= {20{reg_instruction[31]}, reg_instruction[31:20]};
-                    shamt <= 5'bz;
-                end
-
-
-                3'b001 begin
-                    Instruction_to_CU <= 24;
-                    imm <= 32'bz;
-                    shamt <= reg_instruction[24:20];
+                3'b111: begin //andi
+                    Instruction_to_CU = 23;
+                    imm = {{20{reg_instruction[31]}}, reg_instruction[31:20]};
+                    shamt = 5'bz;
                 end
 
-                3'b101 begin
+
+                3'b001: begin
+                    Instruction_to_CU = 24;
+                    imm = 32'bz;
+                    shamt = reg_instruction[24:20];
+                end
+
+                3'b101: begin
                     if(!reg_instruction[30]) begin
-                        Instruction_to_CU <= 25;
-                        imm <= 32'bz;
-                        shamt <= reg_instruction[24:20];
+                        Instruction_to_CU = 25;
+                        imm = 32'bz;
+                        shamt = reg_instruction[24:20];
                     end else begin
-                        Instruction_to_CU <= 26;
-                        imm <= 32'bz;
-                        shamt <= reg_instruction[24:20];
+                        Instruction_to_CU = 26;
+                        imm = 32'bz;
+                        shamt = reg_instruction[24:20];
                     end
                 end
 
-                default: invalid_instruction <= 1;
+                default: invalid_instruction = 1;
             endcase
         end
 
         4'd8: begin//R
-            imm <= 32'bz;
-            rd <= reg_instruction[11:7];
-            rs1 <= reg_instruction[19:15];
-            rs2 <= reg_instruction[24:20];
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            invalid_instruction <= 0;
+            imm = 32'bz;
+            rd = reg_instruction[11:7];
+            rs1 = reg_instruction[19:15];
+            rs2 = reg_instruction[24:20];
+            shamt = 5'bz;
+            pc_increment = 4;
+            invalid_instruction = 0;
             case(reg_instruction[14:12])
                 3'b000: begin
                     if(!reg_instruction[30]) begin //add
-                        Instruction_to_CU <= 27;
+                        Instruction_to_CU = 27;
                     end else begin //sub
-                        Instruction_to_CU <= 28;
+                        Instruction_to_CU = 28;
                     end
                 end
-                3'b001: Instruction_to_CU <= 29; //sll
-                3'b010: Instruction_to_CU <= 30; //slt
-                3'b011: Instruction_to_CU <= 31; //sltu
-                3'b100: Instruction_to_CU <= 32; //xor
+                3'b001: Instruction_to_CU = 29; //sll
+                3'b010: Instruction_to_CU = 30; //slt
+                3'b011: Instruction_to_CU = 31; //sltu
+                3'b100: Instruction_to_CU = 32; //xor
                 3'b101: begin 
                     if(!reg_instruction[30]) begin //srl
-                        Instruction_to_CU <= 33;
+                        Instruction_to_CU = 33;
                     end else begin //sra
-                        Instruction_to_CU <= 34;
+                        Instruction_to_CU = 34;
                     end
                 end
-                3'b110: Instruction_to_CU <= 35; //or
-                3'b111: Instruction_to_CU <= 36; //and
-                default: invalid_instruction <= 1;
+                3'b110: Instruction_to_CU = 35; //or
+                3'b111: Instruction_to_CU = 36; //and
+                default: invalid_instruction = 1;
             endcase
         end
         4'd9: begin//FENCE/FENCE.I
-            imm <= 32'bz;
-            rd <= 5'bz;
-            rs1 <= 5'bz;
-            rs2 <= 5'bz;
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            invalid_instruction <= 0;
+            imm = 32'bz;
+            rd = 5'bz;
+            rs1 = 5'bz;
+            rs2 = 5'bz;
+            shamt = 5'bz;
+            pc_increment = 4;
+            invalid_instruction = 0;
             case(reg_instruction[14:12])
-                3'b000: Instruction_to_CU <= 37; //fence
-                3'b001: Instruction_to_CU <= 38; //fence.i
-                default: invalid_instruction <= 1;
+                3'b000: Instruction_to_CU = 37; //fence
+                3'b001: Instruction_to_CU = 38; //fence.i
+                default: invalid_instruction = 1;
             endcase
         end
         4'd10: begin//ECALL/EBREAK
             case(reg_instruction[20])
-                1'b0: Instruction_to_CU <= 39; //ecall
-                1'b1: Instruction_to_CU <= 39; //ebreak
+                1'b0: Instruction_to_CU = 39; //ecall
+                1'b1: Instruction_to_CU = 40; //ebreak
             endcase
+                decryptedOPtype = 12;
+                imm = 32'bz;
+                rd = 5'bz;
+                rs1 = 5'bz;
+                rs2 = 5'bz;
+                shamt = 5'bz;
+                pc_increment = 4;
+
+                IDU_ready = 0;
+                Instruction_to_ALU = 16;
+                //ALU_module_select <= 0;
+                Instruction_to_CU = 0;
+
+                invalid_instruction = 0;
+                pipeline_override = 0;
+
+                reg_instruction = 0;
+                IDU_result_counter = 0;
         end
 
         4'd12: begin//INITIALIZED
-            imm <= 32'bz;
-            rd <= 5'bz;
-            rs1 <= 5'bz;
-            rs2 <= 5'bz;
-            shamt <= 5'bz;
-            pc_increment <= 4;
-            invalid_instruction <= 0;
+            imm = 32'bz;
+            rd = 5'bz;
+            rs1 = 5'bz;
+            rs2 = 5'bz;
+            shamt = 5'bz;
+            pc_increment = 4;
+            invalid_instruction = 0;
         end
 
         default: begin //ERROR. should catch 11 case
@@ -322,7 +342,7 @@ always@(decryptedOPtype) begin
 end
 
     //specific instructions for ALU
-    always@(posedge IDU_ready) begin 
+    always@(Instruction_to_CU) begin 
         case(Instruction_to_CU)
             //B
             4: Instruction_to_ALU = 5'd0; //BEQ branch equal
@@ -369,13 +389,13 @@ end
 
 always@(posedge IDU_ready) begin
     if(previous_rd == rs1) begin//OVERRIDE CASES
-        pipelining_override <= 2'b01;
+        pipeline_override <= 2'b01;
     end
     else if(previous_rd == rs2) begin
-        pipelining_override <= 2'b10;
+        pipeline_override <= 2'b10;
     end
     else begin
-        pipelining_override <= 2'b00;
+        pipeline_override <= 2'b00;
     end
 end
     
@@ -384,6 +404,7 @@ always@(posedge soc_clk) begin //buffered delay to allow for pipelining
     if(Fetch_ready) begin
         if(IDU_result_counter==3) begin
             IDU_ready <= 1;
+            IDU_result_counter <= 0;
         end
         else begin
             IDU_result_counter <= IDU_result_counter + 1;
@@ -394,7 +415,7 @@ always@(posedge soc_clk) begin //buffered delay to allow for pipelining
     end
 end
 
-always@(negedge Fetch_ready or reset) begin
+always@(negedge Fetch_ready or posedge reset) begin
     //reset everything no error flag
     decryptedOPtype <= 12;
     imm <= 32'bz;
