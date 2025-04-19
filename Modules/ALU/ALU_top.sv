@@ -7,16 +7,17 @@ module ALU_top(
     //databusses
     input [31:0] ALU_dat1,
     input [31:0] ALU_dat2,
-    input [2:0] ALU_opcode, //from [14:12] of instruction
+    //input [2:0] ALU_opcode, //from [14:12] of instruction
 
-    input ALU_opcode_differentiator, //purely for use of ADD/SUB, SRI/SRA, SRLI/SRAI differentiator. from [2] of instruction.
+    //input ALU_opcode_differentiator, //purely for use of ADD/SUB, SRI/SRA, SRLI/SRAI differentiator. from [2] of instruction.
         //1'b0 -> default state
         //1'b1 -> indicates SUB, SRA, or SRAI operation
 
-    input ALU_optype, //
+    //input ALU_optype, //
         //1'b1 -> I/R type (ALU_out needs calculation)
         //1'b0 -> B type (ALU_out redundant, all that is needed is branching flag)
-    input [4:0] Instruction_to_ALU,
+
+    input [4:0] Instruction_to_ALU, //from IDU -> CU reg -> ALU
 
     //flags
     output reg ALU_overflow,
@@ -65,7 +66,6 @@ module ALU_top(
     always@(posedge dat_ready) begin //preserve to avoid dataloss
         reg_ALU_dat1 <= ALU_dat1;
         reg_ALU_dat2 <= ALU_dat2;
-        reg_ALU_opcode <= ALU_opcode;
         reg_ALU_optype <= ALU_optype;
     end
 

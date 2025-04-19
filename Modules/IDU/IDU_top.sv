@@ -302,27 +302,29 @@ always@(decryptedOPtype) begin
         end
         4'd10: begin//ECALL/EBREAK
             case(reg_instruction[20])
-                1'b0: Instruction_to_CU = 39; //ecall
-                1'b1: Instruction_to_CU = 40; //ebreak
+                1'b0 begin
+                    Instruction_to_CU = 39; //ecall
+                    decryptedOPtype = 12;
+                    imm = 32'bz;
+                    rd = 5'bz;
+                    rs1 = 5'bz;
+                    rs2 = 5'bz;
+                    shamt = 5'bz;
+                    pc_increment = 4;
+
+                    IDU_ready = 0;
+                    Instruction_to_ALU = 16;
+                    //ALU_module_select <= 0;
+                    Instruction_to_CU = 0;
+
+                    invalid_instruction = 0;
+                    pipeline_override = 0;
+
+                    reg_instruction = 0;
+                    IDU_result_counter = 0;
+                end
+                1'b1: Instruction_to_CU = 40; //ebreak means no reset
             endcase
-                decryptedOPtype = 12;
-                imm = 32'bz;
-                rd = 5'bz;
-                rs1 = 5'bz;
-                rs2 = 5'bz;
-                shamt = 5'bz;
-                pc_increment = 4;
-
-                IDU_ready = 0;
-                Instruction_to_ALU = 16;
-                //ALU_module_select <= 0;
-                Instruction_to_CU = 0;
-
-                invalid_instruction = 0;
-                pipeline_override = 0;
-
-                reg_instruction = 0;
-                IDU_result_counter = 0;
         end
 
         4'd12: begin//INITIALIZED
