@@ -23,4 +23,4 @@ RISCV binary can be compiled and directly saved to bits.bin. The data will be lo
 Ecall/Ebreak are treated as program terminations. FENCE is treated as FENCE.I for simplicity!
 
 ### Todo:
-- rudimentary compiler that will translate assembly code into executable binary?
+- assembler that will translate assembly code into .bin?
