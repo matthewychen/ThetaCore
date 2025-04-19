@@ -47,7 +47,7 @@ reg [3:0] decryptedOPtype;
 //11 -> invalid
 //12 -> initial
 
-reg [1:0] IDU_result_counter;
+// reg [1:0] IDU_result_counter;
 
 //save instruction in register
 reg [31:0] reg_instruction;
@@ -75,7 +75,7 @@ initial begin
     pipeline_override <= 0;
 
     reg_instruction <= 0;
-    IDU_result_counter <= 0;
+    //IDU_result_counter <= 0;
     //set all output regs to default/deasserted state
 end
 
@@ -376,11 +376,13 @@ end
 
             default: Instruction_to_ALU = 5'd16; //no operation
         endcase
+        IDU_ready <= 1;
 end
 
 //PIPELINING OVERRIDE DETECT
 
 reg [4:0] previous_rd;
+
 initial begin
     previous_rd <= 5'bzzzzz; //no previous register
 end
@@ -402,20 +404,20 @@ always@(posedge IDU_ready) begin
 end
     
 //use IDU result counter to push IDU_ready flag.
-always@(posedge soc_clk) begin //buffered delay to allow for pipelining
-    if(Fetch_ready) begin
-        if(IDU_result_counter==3) begin
-            IDU_ready <= 1;
-            IDU_result_counter <= 0;
-        end
-        else begin
-            IDU_result_counter <= IDU_result_counter + 1;
-        end
-    end
-    else begin
-        IDU_ready <= 0;
-    end
-end
+//always@(posedge soc_clk) begin //buffered delay to allow for pipelining
+//    if(Fetch_ready) begin
+//        if(IDU_result_counter==3) begin
+//            IDU_ready <= 1;
+//            IDU_result_counter <= 0;
+//        end
+//        else begin
+//            IDU_result_counter <= IDU_result_counter + 1;
+//        end
+//    end
+//    else begin
+//        IDU_ready <= 0;
+//    end
+//end
 
 always@(negedge Fetch_ready or posedge reset) begin
     //reset everything no error flag
@@ -438,6 +440,7 @@ always@(negedge Fetch_ready or posedge reset) begin
     reg_instruction <= 0;
     IDU_result_counter <= 0;
 
+    IDU_ready <= 0;
 end
 
 endmodule

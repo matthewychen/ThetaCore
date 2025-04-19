@@ -77,6 +77,36 @@ reg [31:0] reg_29; //temp reg 4                                                 
 reg [31:0] reg_30; //temp reg 5                                                  | t5
 reg [31:0] reg_31; //temp reg 6                                                  | t6
 
+initial begin //instantiate everything to 0.
+    CU_result_counter = 0;
+end
+
+always@(posedge soc_clk) begin
+    else if(CU_result_counter == 0) begin 
+        //query for memory read
+        //memfetch should assert Fetch_ready to IDU
+        //decode IDU_result
+        //If 
+        CU_result_counter = CU_result_counter + 1;
+    end
+    else if(CU_result_counter == 1) begin
+        // begin setting outputs to child modules
+        // evaluate branch condition
+        CU_result_counter = CU_result_counter + 1;
+    end
+    else if(CU_result_counter == 2) begin
+        //check pipelining from IDU; perform rs1 override if nessessary on ALU inputs
+        //set all other ALU inputs, including Instruction_to_ALU
+        CU_result_counter = CU_result_counter + 1;
+    end
+    else if(CU_result_counter == 3) begin
+        //CU_ready to ALU. 
+        //Increment PC.
+        //conclude cycle
+        CU_result_counter = 0;
+    end
+end
+
 always@(posedge ALU_err or posedge CU_decode_error) begin
     $finish;
 end
