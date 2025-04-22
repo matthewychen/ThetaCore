@@ -376,7 +376,7 @@ end
 
             default: Instruction_to_ALU = 5'd16; //no operation
         endcase
-        IDU_ready <= 1;
+        IDU_ready = 1;
 end
 
 //PIPELINING OVERRIDE DETECT
@@ -419,7 +419,7 @@ end
 //    end
 //end
 
-always@(negedge Fetch_ready or posedge reset) begin
+always@(negedge Fetch_ready or posedge reset) begin 
     //reset everything no error flag
     decryptedOPtype <= 12;
     imm <= 32'bz;

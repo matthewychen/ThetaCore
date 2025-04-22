@@ -82,15 +82,16 @@ initial begin //instantiate everything to 0.
 end
 
 always@(posedge soc_clk) begin
-    else if(CU_result_counter == 0) begin 
+    else if(CU_result_counter == 0) begin //all ready signals should be asserted here
         //query for memory read
-        //memfetch should assert Fetch_ready to IDU
+        //memfetch should assert Fetch_ready to IDU, IDU should begin decryption now
         //decode IDU_result
         //If 
         CU_result_counter = CU_result_counter + 1;
     end
     else if(CU_result_counter == 1) begin
         // begin setting outputs to child modules
+        // collect decoded from IDU: use this to:
         // evaluate branch condition
         CU_result_counter = CU_result_counter + 1;
     end
