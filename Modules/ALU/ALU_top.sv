@@ -34,51 +34,49 @@ module ALU_top(
     reg [31:0] reg_ALU_dat1;
     reg [31:0] reg_ALU_dat2;
     reg [2:0] reg_ALU_opcode;
-    reg  reg_ALU_optype;
     reg [4:0] reg_concat_op;
 
     reg [1:0] ALU_result_counter;
     
-    reg [31:0] AddSub_out;
-    reg [31:0] Comparator_out; //always 32b0
-    reg [31:0] LogOp_out;
-    reg [31:0] Shifter_out;
+    wire [31:0] AddSub_out;
+    wire AddSub_overflow;  // Missing declaration
+    wire AddSub_zero;      // Missing declaration
+    wire [31:0] Comparator_out;
+    wire Comparator_con_met; // Missing declaration
+    wire [31:0] LogOp_out;
+    wire [31:0] Shifter_out;
 
     initial begin
         ALU_overflow = 1'b0;
         ALU_con_met = 1'b0;
         ALU_zero = 1'b0;
         ALU_err = 1'b0;
-
+        ALU_ready <= 0;
         ALU_out <= 32'b0;
 
         reg_ALU_dat1 = 32'b0;
         reg_ALU_dat2 = 32'b0;
-        reg_ALU_opcode = 3'b0;
-        reg_ALU_optype = 1'b0;
         reg_concat_op = 5'b0;
 
         ALU_out <= 0;
 
-        ALU_result_counter = 2'b0;
+        ALU_result_counter = 2'b11;
     end
 
-    always@(posedge dat_ready) begin //preserve to avoid dataloss
-        reg_ALU_dat1 <= ALU_dat1;
-        reg_ALU_dat2 <= ALU_dat2;
-        reg_ALU_optype <= ALU_optype;
+    always@(posedge soc_clk) begin
+        if (reset) begin
+            reg_ALU_dat1 <= 0;
+            reg_ALU_dat2 <= 0;
+        end
+        else if (dat_ready) begin
+            reg_ALU_dat1 <= ALU_dat1;
+            reg_ALU_dat2 <= ALU_dat2;
+        end
     end
 
-    always@(posedge reset) begin //reset on data no longer ready
-        reg_ALU_dat1 <= 0;
-        reg_ALU_dat2 <= 0;
-        reg_ALU_opcode <= 0;
-        reg_ALU_optype <= 0;
-    end
-
-    always@(reg_ALU_optype, ALU_opcode_differentiator, reg_ALU_opcode) begin
-        reg_concat_op <= {reg_ALU_optype, ALU_opcode_differentiator, reg_ALU_opcode};
-    end
+ //   always@(reg_ALU_optype, ALU_opcode_differentiator, reg_ALU_opcode) begin
+ //       reg_concat_op <= {reg_ALU_optype, ALU_opcode_differentiator, reg_ALU_opcode};
+//  end
 
     //decryptor - MIGRATED TO IDU_top.
  //   always@(reg_concat_op) begin //IMPORTANT: need to account for situations where IMM places a 1 in reg_ALU_optype
@@ -108,37 +106,50 @@ module ALU_top(
  //       endcase
  //   end
 
-    always@(posedge soc_clk) begin //counter output
-        if(dat_ready) begin
-            if(ALU_result_counter == 0 || ALU_result_counter == 1 || ALU_result_counter == 2) begin //reset all outputs
-                ALU_out <= 32'b0;
-                ALU_overflow <= 1'b0;
-                ALU_zero <= 1'b0;
-                ALU_con_met <= 1'b0;
-                ALU_result_counter <= ALU_result_counter + 1;
-            end
-            if(ALU_result_counter == 3) begin //output
-                ALU_ready <= 1;
-                if(Instruction_to_ALU == 6 || Instruction_to_ALU == 7) begin
-                    ALU_out <= AddSub_out;
-                    ALU_overflow <= AddSub_overflow;
-                    ALU_zero <= AddSub_zero;
-                end
-                else if (Instruction_to_ALU == 8 || Instruction_to_ALU == 12 || Instruction_to_ALU == 13) begin
-                    ALU_out <= Shifter_out;
-                end
-                else if (Instruction_to_ALU == 14 || Instruction_to_ALU == 15 || Instruction_to_ALU == 11) begin
-                    ALU_out <= LogOp_out;
-                end
-                else if (Instruction_to_ALU == 0 || Instruction_to_ALU == 1 || Instruction_to_ALU == 2 || Instruction_to_ALU == 3 || Instruction_to_ALU == 4 || Instruction_to_ALU == 5 || Instruction_to_ALU == 9 || Instruction_to_ALU == 10) begin
-                    ALU_out <= Comparator_out;
-                    ALU_con_met <= Comparator_con_met;
-                end
-                else if (Instruction_to_ALU == 16) begin //no operation
+    always@(posedge soc_clk or posedge reset) begin
+        if (reset) begin
+            // Reset logic
+            ALU_result_counter <= 0;
+            ALU_ready <= 0;
+            ALU_out <= 32'b0;
+            ALU_overflow <= 1'b0;
+            ALU_zero <= 1'b0;
+            ALU_con_met <= 1'b0;
+        end
+        else if(dat_ready) begin
+            case(ALU_result_counter)
+                2'b00: begin
+                    // Reset outputs
                     ALU_out <= 32'b0;
+                    ALU_overflow <= 1'b0;
+                    ALU_zero <= 1'b0;
+                    ALU_con_met <= 1'b0;
+                    ALU_result_counter <= 2'b01;
                 end
-                ALU_result_counter <= 0;
-            end
+                2'b01: begin
+                    // Output results
+                    ALU_ready <= 1'b1;
+                    case(Instruction_to_ALU)
+                        6, 7: begin
+                            ALU_out <= AddSub_out;
+                            ALU_overflow <= AddSub_overflow;
+                            ALU_zero <= AddSub_zero;
+                        end
+                        8, 12, 13: ALU_out <= Shifter_out;
+                        11, 14, 15: ALU_out <= LogOp_out;
+                        0, 1, 2, 3, 4, 5, 9, 10: begin
+                            ALU_out <= Comparator_out;
+                            ALU_con_met <= Comparator_con_met;
+                        end
+                        default: ALU_out <= 32'b0;
+                    endcase
+                    ALU_result_counter <= 2'b10;
+                end
+                2'b10: begin
+                    // Hold state for one cycle to ensure output stability
+                    ALU_result_counter <= 2'b00;
+                end
+            endcase
         end
         else begin
             ALU_ready <= 0;

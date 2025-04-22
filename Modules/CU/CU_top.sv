@@ -1,27 +1,7 @@
 module ControlUnit(
     //templated
-    input soc_clk,
-    input reset,
+    input soc_clk
 
-    //from IDU
-    input IDU_ready,
-    input [5:0] Instruction_to_CU,
-    input [4:0] Instruction_to_ALU, //needs to be outputted to ALU 1 clock cycle before dat_ready
-    //databusses
-    input [31:0] imm,
-    input [4:0] rd, //CU register sel
-    input [4:0] rs1,
-    input [4:0] rs2,
-    input [4:0] shamt,
-    input [31:0] pc_increment,
-
-    //flags
-    input [1:0] pipeline_override,
-    //00 -> no override on next instruction
-    //01 -> override rs1
-    //10 -> override rs2
-
-    //need 
     //instantiation of ALU
     //module to handle flag from branch command,
     //32x general purpose registers, special registers PC (needs to be able to handle jal/jalr), IR, MDR, MAR, TEMP. dont use sram, just use builtin... sram is too much of a headache and would add additional lag
@@ -34,15 +14,16 @@ module ControlUnit(
     //for JALR and JAL, make sure to stall and wait for those instructions to finish before proceeding
 
 );
+//GLOBAL RESET/FLUSH
+reg reset;
 
 reg [1:0] CU_result_counter; //actually needed in CU to implement pipelining override and coordinate various activities.
 
-reg [31:0] CU_PC; //if PC > 4*128: kill
-reg [31:0] CU_IR;
-reg [31:0] CU_MDR;
-reg [31:0] CU_MAR;
-reg [31:0] CU_TEMP; //needed?
-
+reg [31:0] Cu_PC; //if PC > 4*128: kill
+reg [31:0] Cu_IR; //collect from memfetch at some point
+reg [31:0] Cu_MDR;
+reg [31:0] Cu_MAR;
+reg [31:0] Cu_TEMP; //needed?
 //31 general purpose registers and the zero register - x0 - x31                  | _ALIASES
 reg [31:0] reg_00; //0 reg                                                       | zero
 reg [31:0] reg_01; //return address                                              | ra
@@ -77,8 +58,31 @@ reg [31:0] reg_29; //temp reg 4                                                 
 reg [31:0] reg_30; //temp reg 5                                                  | t5
 reg [31:0] reg_31; //temp reg 6                                                  | t6
 
+//from IDU
+reg IDU_ready;
+reg [5:0] Instruction_to_CU;
+reg [4:0] Instruction_to_ALU; //needs to be outputted to ALU 1 clock cycle before dat_ready
+//databusses
+reg [31:0] imm;
+reg [4:0] rd; //CU register sel
+reg [4:0] rs1;
+reg [4:0] rs2;
+reg [4:0] shamt;
+reg [31:0] pc_increment;
+
+//flags
+reg [1:0] pipeline_override;
+    //00 -> no override on next instruction
+    //01 -> override rs1
+    //10 -> override rs2
+
+reg memfetch_start;
+reg decode_start;
+reg last_branch_state; //for simple branch prediction
+
 initial begin //instantiate everything to 0.
     CU_result_counter = 0;
+    memfetch_start = 0;
 end
 
 always@(posedge soc_clk) begin
@@ -104,16 +108,42 @@ always@(posedge soc_clk) begin
         //CU_ready to ALU. 
         //Increment PC.
         //conclude cycle
-        CU_result_counter = 0;
+        //CU_result_counter = 0; DONT reset as this will shorten the stage length to 3 instead of 4. should overflow automatically
+        CU_result_counter = CU_result_counter + 1;
     end
 end
 
-always@(posedge ALU_err or posedge CU_decode_error) begin
+always@(posedge ALU_err or posedge invalid_instruction) begin
     $finish;
 end
 
-CU_decrpyt CU_decrypt_inst(
-    .CU_out(CU_out)
+mem_interface mem_interface_unit(
+    soc_clk,
+    .reset(reset),
+    .CU_ready(memfetch_start),
+    .CU_IR(CU_IR)
+    .bits_to_access(),
+    .read_or_write()
+);
+
+IDU_top instruction_decode_unit(
+    .soc_clk(soc_clk),
+    .reset(reset),
+    .Fetch_ready(decode_start),  // Assuming Fetch_ready is available in CU
+    .instruction(Cu_IR),        // Using CU_IR as the instruction input
+    
+    // IDU outputs to CU
+    .IDU_ready(IDU_ready),
+    .Instruction_to_CU(Instruction_to_CU),
+    .Instruction_to_ALU(Instruction_to_ALU),
+    .imm(imm),
+    .rd(rd),
+    .rs1(rs1),
+    .rs2(rs2),
+    .shamt(shamt),
+    .pc_increment(pc_increment),
+    .pipeline_override(pipeline_override),
+    .invalid_instruction(invalid_instruction)  // This will need to be declared in CU
 );
 
 endmodule
