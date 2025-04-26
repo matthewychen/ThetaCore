@@ -24,39 +24,43 @@ reg [31:0] Cu_IR; //collect from memfetch at some point
 reg [31:0] Cu_MDR;
 reg [31:0] Cu_MAR;
 reg [31:0] Cu_TEMP; //needed?
+
+
+
+reg [31:0][31:0] CU_reg;
 //31 general purpose registers and the zero register - x0 - x31                  | _ALIASES
-reg [31:0] reg_00; //0 reg                                                       | zero
-reg [31:0] reg_01; //return address                                              | ra
-reg [31:0] reg_02; //stack pointer                                               | sp
-reg [31:0] reg_03; //global pointer                                              | gp
-reg [31:0] reg_04; //thread pointer. Will not implement (long explanation.)      | tp
-reg [31:0] reg_05; //temp reg 0                                                  | t0
-reg [31:0] reg_06; //temp reg 1                                                  | t1
-reg [31:0] reg_07; //temp reg 2                                                  | t2
-reg [31:0] reg_08; //saved reg 0 /frame pointer                                  | s0/fp
-reg [31:0] reg_09; //saved reg 1                                                 | s1
-reg [31:0] reg_10; //function arg 0                                              | a0
-reg [31:0] reg_11; //function arg 1                                              | a1
-reg [31:0] reg_12; //function arg 2                                              | a2
-reg [31:0] reg_13; //function arg 3                                              | a3
-reg [31:0] reg_14; //function arg 4                                              | a4
-reg [31:0] reg_15; //function arg 5                                              | a5
-reg [31:0] reg_16; //function arg 6                                              | a6
-reg [31:0] reg_17; //function arg 7                                              | a7
-reg [31:0] reg_18; //saved reg 2                                                 | s2
-reg [31:0] reg_19; //saved reg 3                                                 | s3
-reg [31:0] reg_20; //saved reg 4                                                 | s4
-reg [31:0] reg_21; //saved reg 5                                                 | s5
-reg [31:0] reg_22; //saved reg 6                                                 | s6
-reg [31:0] reg_23; //saved reg 7                                                 | s7
-reg [31:0] reg_24; //saved reg 8                                                 | s8
-reg [31:0] reg_25; //saved reg 9                                                 | s9
-reg [31:0] reg_26; //saved reg 10                                                | s10
-reg [31:0] reg_27; //saved reg 11                                                | s11
-reg [31:0] reg_28; //temp reg 3                                                  | t3
-reg [31:0] reg_29; //temp reg 4                                                  | t4
-reg [31:0] reg_30; //temp reg 5                                                  | t5
-reg [31:0] reg_31; //temp reg 6                                                  | t6
+// reg_00: 0 reg                                                       | zero
+// reg_01: return address                                              | ra
+// reg_02: stack pointer                                               | sp
+// reg_03: global pointer                                              | gp
+// reg_04: thread pointer. Will not implement (long explanation.)      | tp
+// reg_05: temp reg 0                                                  | t0
+// reg_06: temp reg 1                                                  | t1
+// reg_07: temp reg 2                                                  | t2
+// reg_08: saved reg 0 /frame pointer                                  | s0/fp
+// reg_09: saved reg 1                                                 | s1
+// reg_10: function arg 0                                              | a0
+// reg_11: function arg 1                                              | a1
+// reg_12: function arg 2                                              | a2
+// reg_13: function arg 3                                              | a3
+// reg_14: function arg 4                                              | a4
+// reg_15: function arg 5                                              | a5
+// reg_16: function arg 6                                              | a6
+// reg_17: function arg 7                                              | a7
+// reg_18: saved reg 2                                                 | s2
+// reg_19: saved reg 3                                                 | s3
+// reg_20: saved reg 4                                                 | s4
+// reg_21: saved reg 5                                                 | s5 
+// reg_22: saved reg 6                                                 | s6 
+// reg_23: saved reg 7                                                 | s7 
+// reg_24: saved reg 8                                                 | s8 
+// reg_25: saved reg 9                                                 | s9
+// reg_26: saved reg 10                                                | s10
+// reg_27: saved reg 11                                                | s11
+// reg_28: temp reg 3                                                  | t3
+// reg_29: temp reg 4                                                  | t4
+// reg_30: temp reg 5                                                  | t5
+// reg_31: temp reg 6                                                  | t6
 
 //from IDU
 reg IDU_ready;
@@ -90,13 +94,12 @@ always@(posedge soc_clk) begin
         //query for memory read
         //memfetch should assert Fetch_ready to IDU, IDU should begin decryption now
         //decode IDU_result
-        //If 
         CU_result_counter = CU_result_counter + 1;
     end
     else if(CU_result_counter == 1) begin
         // begin setting outputs to child modules
         // collect decoded from IDU: use this to:
-        // evaluate branch condition
+        // evaluate branch/override condition
         CU_result_counter = CU_result_counter + 1;
     end
     else if(CU_result_counter == 2) begin
@@ -105,7 +108,7 @@ always@(posedge soc_clk) begin
         CU_result_counter = CU_result_counter + 1;
     end
     else if(CU_result_counter == 3) begin
-        //CU_ready to ALU. 
+        //CU_ready to ALU
         //Increment PC.
         //conclude cycle
         //CU_result_counter = 0; DONT reset as this will shorten the stage length to 3 instead of 4. should overflow automatically
@@ -142,8 +145,6 @@ IDU_top instruction_decode_unit(
     .rs2(rs2),
     .shamt(shamt),
     .pc_increment(pc_increment),
-    .pipeline_override(pipeline_override),
-    .invalid_instruction(invalid_instruction)  // This will need to be declared in CU
-);
-
+    .pipeline_override(pipeline_override), 
+    .invalid_instruction(invalid_instruction)  // This will need to be declared in CU);
 endmodule

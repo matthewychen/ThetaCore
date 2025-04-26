@@ -6,7 +6,7 @@ module mem_interface(
     input [3:0] bits_to_access;
     input read_or_write;
     //need to retrieve from and write data to SRAM.
-    output [31:0] CU_IR
+    output [31:0] Cu_IR
 );
 
 endmodule
