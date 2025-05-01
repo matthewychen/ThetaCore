@@ -33,8 +33,6 @@ module ALU_top(
     //for storage to mitigate data loss
     reg [31:0] reg_ALU_dat1;
     reg [31:0] reg_ALU_dat2;
-    reg [2:0] reg_ALU_opcode;
-    reg [4:0] reg_concat_op;
 
     reg [1:0] ALU_result_counter;
     
@@ -56,7 +54,6 @@ module ALU_top(
 
         reg_ALU_dat1 = 32'b0;
         reg_ALU_dat2 = 32'b0;
-        reg_concat_op = 5'b0;
 
         ALU_out <= 0;
 

@@ -1,4 +1,4 @@
-module ControlUnit(
+module CU_top(
     //templated
     input soc_clk
 
@@ -23,12 +23,12 @@ reg [31:0] Cu_PC; //if PC > 4*128: kill
 reg [31:0] Cu_IR; //collect from memfetch at some point
 reg [31:0] Cu_MDR;
 reg [31:0] Cu_MAR;
-reg [31:0] Cu_TEMP; //needed?
+reg [31:0] Cu_TEMP; //needed to save offset/return address for branch prediction.
 
 
 
 reg [31:0][31:0] CU_reg;
-//31 general purpose registers and the zero register - x0 - x31                  | _ALIASES
+//31 general purpose registers and the zero register - x0 - x31        | Application_Binary_Interface Name
 // reg_00: 0 reg                                                       | zero
 // reg_01: return address                                              | ra
 // reg_02: stack pointer                                               | sp
@@ -120,7 +120,7 @@ always@(posedge ALU_err or posedge invalid_instruction) begin
     $finish;
 end
 
-mem_interface mem_interface_unit(
+MMU mem_interface_unit(
     soc_clk,
     .reset(reset),
     .CU_ready(memfetch_start),
