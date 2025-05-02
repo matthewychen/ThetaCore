@@ -25,8 +25,6 @@ reg [31:0] Cu_MDR;
 reg [31:0] Cu_MAR;
 reg [31:0] Cu_TEMP; //needed to save offset/return address for branch prediction.
 
-
-
 reg [31:0][31:0] CU_reg;
 //31 general purpose registers and the zero register - x0 - x31        | Application_Binary_Interface Name
 // reg_00: 0 reg                                                       | zero
@@ -116,7 +114,7 @@ always@(posedge soc_clk) begin
     end
 end
 
-always@(posedge ALU_err or posedge invalid_instruction) begin
+always@(posedge ALU_err or posedge invalid_instruction) begin //include other errors as they come
     $finish;
 end
 

@@ -1,7 +1,7 @@
 module CU_ID(
     // Clock and control inputs
     input wire soc_clk,
-    input wire reset,
+    input wire IDU_reset,
     input wire decode_start,    // From CU to trigger decode
     input wire IDU_stall,       // Stall signal for pipeline hazards
     input wire [31:0] Cu_IR,    // Instruction from CU
