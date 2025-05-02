@@ -2,29 +2,33 @@
 //translates CU commands into byte addresses and retrieves from/stores in SRAM
 
 module MMU(
-    //in from CPU
-    input [6:0] CU_address;
-    input [31:0] CU_offset
-    input [31:0] CU_dat_in;
-    input mem_op;
+    //in from CU
+    input soc_clk,
+    input MMU_reset,
+    input MMU_flush,
+    input [31:0] CU_address, //for compatability reasons. this is copied from PC.
+    input [3:0] CU_bytesel,
+    input [31:0] CU_dat_in,
+    
     //1'b0 ---> read
     //1'b1 ---> write
-    input start; //on posedge begin query
+    input retrieve; //on posedge begin query
 
     //out to CPU
-    output [31:0] CU_dat_out;
-    //flags
-    output flg_complete;
+    output reg [31:0] CU_dat_out; //raw data from address
+
+    //MMU ready
+    output reg MMU_ready;
 
     //in from SRAM
     input [31:0] SRAM_dat_out;
 
-    //out to SRAM
-    output [6:0] SRAM_addr_sel;
-    output [3:0] SRAM_byte_sel;
-    input read_pulse,
-    input write_pulse,
-    input [31:0] SRAM_dat_in;
+    //out to SRAM. Needs to pass through CU to tb_top and into SRAM.
+    output reg [6:0] SRAM_addr_sel;
+    output reg [3:0] SRAM_byte_sel;
+    output read_pulse,
+    output write_pulse,
+    input reg [31:0] SRAM_dat_in;
 );
 
 //goals:

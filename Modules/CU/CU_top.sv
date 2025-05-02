@@ -120,22 +120,15 @@ always@(posedge ALU_err or posedge invalid_instruction) begin
     $finish;
 end
 
-MMU mem_interface_unit(
-    soc_clk,
-    .reset(reset),
-    .CU_ready(memfetch_start),
-    .CU_IR(CU_IR)
-    .bits_to_access(),
-    .read_or_write()
-);
-
-IDU_top instruction_decode_unit(
+// Inside CU_top module
+CU_ID instruction_decoder(
     .soc_clk(soc_clk),
     .reset(reset),
-    .Fetch_ready(decode_start),  // Assuming Fetch_ready is available in CU
-    .instruction(Cu_IR),        // Using CU_IR as the instruction input
+    .decode_start(decode_start),    // From MMU or other control signal
+    .IDU_stall(IDU_stall),          // Connect to hazard detection
+    .Cu_IR(Cu_IR),                  // Connect to instruction register
     
-    // IDU outputs to CU
+    // Connect all outputs to CU internal signals
     .IDU_ready(IDU_ready),
     .Instruction_to_CU(Instruction_to_CU),
     .Instruction_to_ALU(Instruction_to_ALU),
@@ -145,6 +138,8 @@ IDU_top instruction_decode_unit(
     .rs2(rs2),
     .shamt(shamt),
     .pc_increment(pc_increment),
-    .pipeline_override(pipeline_override), 
-    .invalid_instruction(invalid_instruction)  // This will need to be declared in CU);
+    .pipeline_override(pipeline_override),
+    .invalid_instruction(invalid_instruction)
+);
+
 endmodule

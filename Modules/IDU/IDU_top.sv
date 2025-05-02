@@ -1,9 +1,10 @@
 module IDU_top(
     //templated
     input soc_clk,
-    input reset,
+    input IDU_reset, //flushing
     input [31:0] instruction,
     input Fetch_ready,
+    input IDU_stall,
 
     output reg IDU_ready, //CU read cue
     output reg [4:0] Instruction_to_ALU, //ALU instruction select, only driven if relevant, otherwise left at invalid = 5'd16
@@ -14,7 +15,6 @@ module IDU_top(
         //4'b1000 -> Shifter
         //4'b0000 -> null/no activation
     output reg [5:0] Instruction_to_CU, //CU instruction select, superset of ALU_module. refer to cu_code_ref.md to decode.
-    
 
     //databusses
     output reg [31:0] imm,
@@ -47,12 +47,12 @@ reg [3:0] decryptedOPtype;
 //11 -> invalid
 //12 -> initial
 
-// reg [1:0] IDU_result_counter;
+//save instruction in register every time new data is available, unless stalled
 
-//save instruction in register
 reg [31:0] reg_instruction;
+
 always@(posedge Fetch_ready) begin
-    if(!reset) begin
+    if(!IDU_stall) begin
         reg_instruction <= instruction;
     end
 end
@@ -419,8 +419,8 @@ end
 //    end
 //end
 
-always@(negedge Fetch_ready or posedge reset) begin 
-    //reset everything no error flag
+always@(posedge IDU_reset) begin 
+    //reset everything. used for flushing
     decryptedOPtype <= 12;
     imm <= 32'bz;
     rd <= 5'bz;
