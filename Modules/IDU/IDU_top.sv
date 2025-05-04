@@ -47,16 +47,6 @@ reg [3:0] decryptedOPtype;
 //11 -> invalid
 //12 -> initial
 
-//save instruction in register every time new data is available, unless stalled
-
-reg [31:0] reg_instruction;
-
-always@(posedge Fetch_ready) begin
-    if(!IDU_stall) begin
-        reg_instruction <= instruction;
-    end
-end
-
 initial begin
     decryptedOPtype <= 12;
     imm <= 32'bz;

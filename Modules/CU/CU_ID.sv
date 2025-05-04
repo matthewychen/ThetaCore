@@ -20,12 +20,21 @@ module CU_ID(
     output reg invalid_instruction      // Error flag
 );
 
+//save instruction in register every time new data is available, unless stalled
+reg [31:0] reg_instruction;
+
+always@(posedge Fetch_ready) begin
+    if(!IDU_stall) begin
+        reg_instruction <= Cu_IR;
+    end
+end
+
 // Instantiate and connect to the Instruction Decode Unit
 IDU_top instruction_decode_unit(
     .soc_clk(soc_clk),
     .IDU_reset(reset),
     .Fetch_ready(decode_start),    // Connect to decode_start from CU
-    .instruction(Cu_IR),           // Connect to instruction from CU
+    .instruction(reg_instruction),           // Connect to instruction from CU
     .IDU_stall(IDU_stall),         // Connect to stall signal
     
     // Connect all outputs (using direct pass-through)

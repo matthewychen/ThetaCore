@@ -2,9 +2,9 @@
 //translates CU commands into byte addresses and retrieves from/stores in SRAM
 
 module MMU(
-    //in from CU
+    //TO CU
     input soc_clk,
-    input MMU_reset,
+    input MMU_stall,
     input MMU_flush,
     input [31:0] CU_address, //for compatability reasons. this is copied from PC.
     input [3:0] CU_bytesel,
@@ -14,12 +14,11 @@ module MMU(
     //1'b1 ---> write
     input retrieve; //on posedge begin query
 
-    //out to CPU
-    output reg [31:0] CU_dat_out; //raw data from address
+    //out to CU
+    output reg [31:0] CU_dat_out; //raw instruction from address
+    output reg MMU_ready; //on successful completion of read or write
 
-    //MMU ready
-    output reg MMU_ready;
-
+    //TO SRAM
     //in from SRAM
     input [31:0] SRAM_dat_out;
 

@@ -5,12 +5,13 @@ module CU_IF(
     input memfetch_start,
     input [31:0] addr,
     input [3:0] bits_to_access,
-    input read_or_write,
+    input read_or_write, //should always be read in IF
     //need to retrieve from and write data to SRAM.
-    output [31:0] Cu_IR //instruction
+    
+    output [31:0] Cu_IR //instruction to CU
 );
 
-// need to send signals upward to communicate with MMU
+// need to edit and pass signals back upwards to interface with MMU
 
 
 endmodule
