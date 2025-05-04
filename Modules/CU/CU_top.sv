@@ -82,8 +82,15 @@ reg memfetch_start;
 reg decode_start;
 reg last_branch_state; //for simple branch prediction
 
+wire IF_reset;
+wire ID_reset;
+wire EX_reset;
+wire MEM_reset;
+wire WB_reset;
+
+
 initial begin //instantiate everything to 0.
-    CU_result_counter = 0;
+    CU_result_counter = 2'b11;
     memfetch_start = 0;
 end
 

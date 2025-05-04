@@ -1,9 +1,10 @@
 module CU_ID(
     // Clock and control inputs
     input wire soc_clk,
-    input wire IDU_reset,
+    input wire ID_reset,
+    input wire ID_stall,
     input wire decode_start,    // From CU to trigger decode
-    input wire IDU_stall,       // Stall signal for pipeline hazards
+    input wire IDU_reset,       // Reset signal for flush
     input wire [31:0] Cu_IR,    // Instruction from CU
 
     // Outputs to CU_top
@@ -22,12 +23,18 @@ module CU_ID(
 
 //save instruction in register every time new data is available, unless stalled
 reg [31:0] reg_instruction;
+reg [1:0] ID_stage_counter;
 
 always@(posedge Fetch_ready) begin
     if(!IDU_stall) begin
         reg_instruction <= Cu_IR;
     end
 end
+
+initial begin
+    ID_stage_counter <= 2'b11;
+end
+
 
 // Instantiate and connect to the Instruction Decode Unit
 IDU_top instruction_decode_unit(

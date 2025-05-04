@@ -21,12 +21,15 @@ module CU_EX(
 );
 
     // Internal signals
+    reg EX_reset_reg;
+    reg EX_stall_reg;
+
     reg dat_ready;
     reg [31:0] ALU_dat1;
     reg [31:0] ALU_dat2;
     
     // 4-stage execution counter
-    reg [1:0] stage_counter;
+    reg [1:0] EX_stage_counter;
     
     // Registered input values
     reg [31:0] reg_rs1_data;
@@ -42,19 +45,39 @@ module CU_EX(
     wire ALU_ready;
     wire [31:0] ALU_out;
     
-    // Counter initialization and control
-    always @(posedge soc_clk or posedge EX_reset) begin
-        if (EX_reset) begin
-            stage_counter <= 2'b00;  // Reset to stage 0
-        end else if (!EX_stall) begin
-            // Only increment if not stalled
-            stage_counter <= stage_counter + 1'b1;
+    // Counter management
+    initial begin
+        EX_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
+        EX_reset_reg <= 0;
+        EX_stall_reg <= 0;
+    end
+
+    always @(posedge soc_clk) begin //unconditional stage incrementation
+        EX_stage_counter <= EX_stage_counter + 1'b1;
+    end
+
+    //reset and stall capture
+    always@(posedge soc_clk or posedge EX_reset) begin
+        if(EX_stage_counter == 00) begin
+            EX_reset_reg <= 0;
+            EX_stall_reg <= 0;
+        end
+        if(EX_reset) begin
+            EX_reset_reg <= 1;
+        end
+        if(EX_stall) begin
+            EX_stall_reg <= 1;
         end
     end
+
+    //stall capture 
     
-    // Data capture and ALU control state machine
-    always @(posedge soc_clk or posedge EX_reset) begin
-        if (EX_reset) begin
+
+    
+    // Data capture and ALU control FSM
+    //may need to change reset organization strategy
+    always @(posedge soc_clk or posedge reg_EX_reset) begin
+        if (reg_EX_reset) begin
             // Reset state
             dat_ready <= 1'b0;
             reg_rs1_data <= 32'b0;
@@ -64,7 +87,7 @@ module CU_EX(
             ALU_dat1 <= 32'b0;
             ALU_dat2 <= 32'b0;
         end else begin
-            case(stage_counter)
+            case(EX_stage_counter)
                 2'b00: begin // Stage 0: Save incoming values
                     if (!EX_stall) begin
                         reg_rs1_data <= rs1_data;
@@ -90,7 +113,7 @@ module CU_EX(
                     end
                 end
                 
-                2'b10: begin // Stage 2: Processing
+                2'b10: begin // Stage 2: Processing time
                 end
                 
                 2'b11: begin // Stage 3: Finished
@@ -102,22 +125,22 @@ module CU_EX(
     end
     
     // Transfer ALU outputs at Stage 3 unless stalled
-    always @(posedge soc_clk or posedge EX_reset) begin
-        if (EX_reset) begin
+    always @(posedge soc_clk or posedge EX_stall or posedge EX_reset_reg) begin
+        if (EX_stall) begin
             result_data <= 32'b0;
             result_ready <= 1'b0;
             overflow_flag <= 1'b0;
             zero_flag <= 1'b0;
             condition_met_flag <= 1'b0;
             error_flag <= 1'b0;
-        end else if (stage_counter == 2'b11 && !EX_stall && ALU_ready) begin
+        end else if (EX_stage_counter == 2'b11 && !EX_stall && ALU_ready) begin
             result_data <= ALU_out;
             result_ready <= 1'b1;
             overflow_flag <= ALU_overflow;
             zero_flag <= ALU_zero;
             condition_met_flag <= ALU_con_met;
             error_flag <= ALU_err;
-        end else if (stage_counter == 2'b00) begin
+        end else if (EX_stage_counter == 2'b00) begin
             // Reset ready flag at beginning of new cycle
             result_ready <= 1'b0;
         end
