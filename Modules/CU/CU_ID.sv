@@ -49,8 +49,34 @@ always@(posedge Fetch_ready) begin
     end
 end
 
+//Unconditional stage counter incrementation
+
 initial begin
     ID_stage_counter <= 2'b11;
+end
+
+always @(posedge soc_clk) begin //unconditional stage incrementation
+    ID_stage_counter <= ID_stage_counter + 1'b1;
+end
+
+always @(posedge soc_clk or posedge ID_reset_reg) begin
+    if (ID_reset_reg) begin
+        // Reset state
+    end else begin
+        case(ID_stage_counter)
+            2'b00: begin // Stage 0: Save incoming values
+            end
+            
+            2'b01: begin // Stage 1: Maybe override inputs
+            end
+            
+            2'b10: begin // Stage 2: Processing time
+            end
+            
+            2'b11: begin // Stage 3: Finished
+            end
+        endcase
+    end
 end
 
 

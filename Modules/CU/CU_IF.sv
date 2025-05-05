@@ -11,6 +11,7 @@ module CU_IF(
 
     output [31:0] IF_data //instruction to CU
 );
+    reg [1:0] IF_stage_counter;
 
     //reset and stall capture
     reg IF_reset_reg;
@@ -27,6 +28,34 @@ module CU_IF(
             // Clear flags only at stage 0 and if no new reset/stall
             IF_reset_reg <= 0;
             IF_stall_reg <= 0;
+        end
+    end
+
+    initial begin
+        IF_stage_counter <= 2'b11;
+    end
+
+    always @(posedge soc_clk) begin //unconditional stage incrementation
+        IF_stage_counter <= IF_stage_counter + 1'b1;
+    end
+
+    always @(posedge soc_clk or posedge IF_reset_reg) begin
+        if (IF_reset_reg) begin
+            // Reset state
+        end else begin
+            case(IF_stage_counter)
+                2'b00: begin // Stage 0: Save incoming values
+                end
+                
+                2'b01: begin // Stage 1: Maybe override inputs
+                end
+                
+                2'b10: begin // Stage 2: Processing time
+                end
+                
+                2'b11: begin // Stage 3: Finished
+                end
+            endcase
         end
     end
 

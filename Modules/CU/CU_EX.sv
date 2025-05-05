@@ -43,17 +43,6 @@ module CU_EX(
     wire ALU_ready;
     wire [31:0] ALU_out;
     
-    // Counter management
-    initial begin
-        EX_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
-        EX_reset_reg <= 0;
-        EX_stall_reg <= 0;
-    end
-
-    always @(posedge soc_clk) begin //unconditional stage incrementation
-        EX_stage_counter <= EX_stage_counter + 1'b1;
-    end
-
     //reset and stall capture
     reg EX_reset_reg;
     reg EX_stall_reg;
@@ -71,11 +60,22 @@ module CU_EX(
             EX_stall_reg <= 0;
         end
     end
+
+    // Counter management
+    initial begin
+        EX_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
+        EX_reset_reg <= 0;
+        EX_stall_reg <= 0;
+    end
+
+    always @(posedge soc_clk) begin //unconditional stage incrementation
+        EX_stage_counter <= EX_stage_counter + 1'b1;
+    end
   
     // Data capture and ALU control FSM
     //may need to change reset organization strategy
-    always @(posedge soc_clk or posedge reg_EX_reset) begin
-        if (reg_EX_reset) begin
+    always @(posedge soc_clk or posedge EX_reset_reg) begin
+        if (EX_reset_reg) begin
             // Reset state
             dat_ready <= 1'b0;
             reg_rs1_data <= 32'b0;
