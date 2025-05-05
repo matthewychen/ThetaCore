@@ -1,11 +1,11 @@
 module CU_ID(
     // Clock and control inputs
-    input wire soc_clk,
-    input wire ID_reset,
-    input wire ID_stall,
-    input wire decode_start,    // From CU to trigger decode
-    input wire IDU_reset,       // Reset signal for flush
-    input wire [31:0] Cu_IR,    // Instruction from CU
+    input soc_clk,
+    input ID_reset,
+    input ID_stall,
+    input decode_start,    // From CU to trigger decode
+    input IDU_reset,       // Reset signal for flush
+    input [31:0] Cu_IR,    // Instruction from CU
 
     // Outputs to CU_top
     output reg IDU_ready,                // Decode completion signal
@@ -24,6 +24,24 @@ module CU_ID(
 //save instruction in register every time new data is available, unless stalled
 reg [31:0] reg_instruction;
 reg [1:0] ID_stage_counter;
+
+//reset and stall capture
+reg ID_reset_reg;
+reg ID_stall_reg;
+
+always@(posedge soc_clk or posedge ID_reset) begin
+    if(ID_reset) begin
+        // Immediate reset response
+        ID_reset_reg <= 1;
+    end else if(ID_stall) begin
+        // Set stall flag
+        ID_stall_reg <= 1;
+    end else if(ID_stage_counter == 2'b00) begin
+        // Clear flags only at stage 0 and if no new reset/stall
+        ID_reset_reg <= 0;
+        ID_stall_reg <= 0;
+    end
+end
 
 always@(posedge Fetch_ready) begin
     if(!IDU_stall) begin

@@ -1,15 +1,15 @@
 module CU_EX(
     // Clock and control inputs
-    input wire soc_clk,
-    input wire EX_reset,
-    input wire EX_stall,
+    input soc_clk,
+    input EX_reset,
+    input EX_stall,
     
     // Data inputs
-    input wire [31:0] rs1_data,
-    input wire [31:0] rs2_data,
-    input wire [31:0] imm_data,
-    input wire [4:0] Instruction_to_ALU,
-    input wire pipelining_override,
+    input [31:0] rs1_data,
+    input [31:0] rs2_data,
+    input [31:0] imm_data,
+    input [4:0] Instruction_to_ALU,
+    input pipelining_override,
 
     // Outputs
     output reg [31:0] result_data,
@@ -21,8 +21,6 @@ module CU_EX(
 );
 
     // Internal signals
-    reg EX_reset_reg;
-    reg EX_stall_reg;
 
     reg dat_ready;
     reg [31:0] ALU_dat1;
@@ -57,23 +55,23 @@ module CU_EX(
     end
 
     //reset and stall capture
+    reg EX_reset_reg;
+    reg EX_stall_reg;
+
     always@(posedge soc_clk or posedge EX_reset) begin
-        if(EX_stage_counter == 00) begin
+        if(EX_reset) begin
+            // Immediate reset response
+            EX_reset_reg <= 1;
+        end else if(EX_stall) begin
+            // Set stall flag
+            EX_stall_reg <= 1;
+        end else if(EX_stage_counter == 2'b00) begin
+            // Clear flags only at stage 0 and if no new reset/stall
             EX_reset_reg <= 0;
             EX_stall_reg <= 0;
         end
-        if(EX_reset) begin
-            EX_reset_reg <= 1;
-        end
-        if(EX_stall) begin
-            EX_stall_reg <= 1;
-        end
     end
-
-    //stall capture 
-    
-
-    
+  
     // Data capture and ALU control FSM
     //may need to change reset organization strategy
     always @(posedge soc_clk or posedge reg_EX_reset) begin

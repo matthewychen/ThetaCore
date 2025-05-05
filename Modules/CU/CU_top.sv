@@ -14,8 +14,6 @@ module CU_top(
     //for JALR and JAL, make sure to stall and wait for those instructions to finish before proceeding
 
 );
-//GLOBAL RESET/FLUSH
-reg reset;
 
 reg [1:0] CU_result_counter; //actually needed in CU to implement pipelining override and coordinate various activities.
 
@@ -82,16 +80,22 @@ reg memfetch_start;
 reg decode_start;
 reg last_branch_state; //for simple branch prediction
 
-wire IF_reset;
-wire ID_reset;
-wire EX_reset;
-wire MEM_reset;
-wire WB_reset;
+reg IF_reset;
+reg ID_reset;
+reg EX_reset;
+reg MEM_reset;
+reg WB_reset;
 
 
 initial begin //instantiate everything to 0.
     CU_result_counter = 2'b11;
     memfetch_start = 0;
+    IF_reset <= 1'b0;    
+    ID_reset <= 1'b0;
+    EX_reset <= 1'b0;
+    MEM_reset <= 1'b0;
+    WB_reset <= 1'b0;
+
 end
 
 always@(posedge soc_clk) begin
@@ -121,6 +125,7 @@ always@(posedge soc_clk) begin
     end
 end
 
+//ERROR CATCH BLOCK
 always@(posedge ALU_err or posedge invalid_instruction) begin //include other errors as they come
     $finish;
 end
