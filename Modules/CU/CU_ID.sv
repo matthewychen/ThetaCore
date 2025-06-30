@@ -3,6 +3,8 @@ module CU_ID(
     input soc_clk,
     input ID_reset,
     input ID_stall,
+    input ID_poweron,
+
     input decode_start,    // From CU to trigger decode
     input IDU_reset,       // Reset signal for flush
     input [31:0] Cu_IR,    // Instruction from CU

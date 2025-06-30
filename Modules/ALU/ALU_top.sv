@@ -103,7 +103,7 @@ module ALU_top(
  //       endcase
  //   end
 
-    always@(posedge soc_clk or posedge reset) begin
+    always@(posedge soc_clk) begin
         if (reset) begin
             // Reset logic
             ALU_result_counter <= 0;

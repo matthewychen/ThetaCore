@@ -11,9 +11,9 @@ initial begin
 end
 
 always@(posedge i_clk) begin
-    state = ~state;
+    state <= ~state;
     if(~state) begin
-        o_clk = ~o_clk;
+        o_clk <= ~o_clk;
     end
 end
 

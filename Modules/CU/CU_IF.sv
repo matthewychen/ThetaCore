@@ -3,7 +3,10 @@ module CU_IF(
     input soc_clk,
     input IF_reset,
     input IF_stall,
-    input memfetch_start,
+    input IF_poweron,
+
+
+    input memfetch_start, //is this still needed if poweron?
     input [31:0] addr,
     input [3:0] bits_to_access,
     input read_or_write, //should always be read in IF

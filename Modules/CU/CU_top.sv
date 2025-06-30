@@ -1,6 +1,7 @@
 module CU_top(
     //templated
-    input soc_clk
+    input soc_clk,
+    input poweron
 
     //instantiation of ALU
     //module to handle flag from branch command,
@@ -14,6 +15,14 @@ module CU_top(
     //for JALR and JAL, make sure to stall and wait for those instructions to finish before proceeding
 
 );
+
+reg [2:0] poweron_state;
+localparam JUSTON = 0;
+localparam IF = 1;
+localparam ID = 2;
+localparam EX = 3;
+localparam MEM = 4;
+localparam WB = 5;
 
 reg [1:0] CU_result_counter; //actually needed in CU to implement pipelining override and coordinate various activities.
 
@@ -78,6 +87,7 @@ reg [1:0] pipeline_override;
 
 reg memfetch_start;
 reg decode_start;
+reg WB_poweron,
 reg last_branch_state; //for simple branch prediction
 
 reg IF_reset;
@@ -86,8 +96,14 @@ reg EX_reset;
 reg MEM_reset;
 reg WB_reset;
 
+reg IF_stall;
+reg ID_stall;
+reg EX_stall;
+reg MEM_stall;
+reg WB_stall;
 
-initial begin //instantiate everything to 0.
+
+always@(posedge poweron) begin //instantiate everything to 0. Poweron sequence.
     CU_result_counter = 2'b11;
     memfetch_start = 0;
     IF_reset <= 1'b0;    
@@ -95,35 +111,50 @@ initial begin //instantiate everything to 0.
     EX_reset <= 1'b0;
     MEM_reset <= 1'b0;
     WB_reset <= 1'b0;
+    poweron_state <= JUSTON;
 
 end
 
 always@(posedge soc_clk) begin
-    else if(CU_result_counter == 0) begin //all ready signals should be asserted here
-        //query for memory read
-        //memfetch should assert Fetch_ready to IDU, IDU should begin decryption now
-        //decode IDU_result
-        CU_result_counter = CU_result_counter + 1;
+    if(poweron_state != WB) begin
+        case(poweron_state)
+            JUSTON:
+            IF:
+            ID:
+            EX:
+            MEM:
+            default: //move to poweron state
+        endcase
     end
-    else if(CU_result_counter == 1) begin
-        // begin setting outputs to child modules
-        // collect decoded from IDU: use this to:
-        // evaluate branch/override condition
-        CU_result_counter = CU_result_counter + 1;
-    end
-    else if(CU_result_counter == 2) begin
-        //check pipelining from IDU; perform rs1 override if nessessary on ALU inputs
-        //set all other ALU inputs, including Instruction_to_ALU
-        CU_result_counter = CU_result_counter + 1;
-    end
-    else if(CU_result_counter == 3) begin
-        //CU_ready to ALU
-        //Increment PC.
-        //conclude cycle
-        //CU_result_counter = 0; DONT reset as this will shorten the stage length to 3 instead of 4. should overflow automatically
-        CU_result_counter = CU_result_counter + 1;
+    else begin
+        if(CU_result_counter == 0) begin //all ready signals should be asserted here
+            //query for memory read
+            //memfetch should assert Fetch_ready to IDU, IDU should begin decryption now
+            //decode IDU_result
+            CU_result_counter = CU_result_counter + 1;
+        end
+        else if(CU_result_counter == 1) begin
+            // begin setting outputs to child modules
+            // collect decoded from IDU: use this to:
+            // evaluate branch/override condition
+            CU_result_counter = CU_result_counter + 1;
+        end
+        else if(CU_result_counter == 2) begin
+            //check pipelining from IDU; perform rs1 override if nessessary on ALU inputs
+            //set all other ALU inputs, including Instruction_to_ALU
+            CU_result_counter = CU_result_counter + 1;
+        end
+        else if(CU_result_counter == 3) begin
+            //CU_ready to ALU
+            //Increment PC.
+            //conclude cycle
+            //CU_result_counter = 0; DONT reset as this will shorten the stage length to 3 instead of 4. should overflow automatically
+            CU_result_counter = CU_result_counter + 1;
+        end
     end
 end
+
+//WB MODULE FUNCTIONALITY GOES HERE
 
 //ERROR CATCH BLOCK
 always@(posedge ALU_err or posedge invalid_instruction) begin //include other errors as they come

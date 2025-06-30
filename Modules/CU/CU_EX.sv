@@ -3,6 +3,7 @@ module CU_EX(
     input soc_clk,
     input EX_reset,
     input EX_stall,
+    input EX_poweron,
     
     // Data inputs
     input [31:0] rs1_data,
@@ -123,7 +124,7 @@ module CU_EX(
     end
     
     // Transfer ALU outputs at Stage 3 unless stalled
-    always @(posedge soc_clk or posedge EX_stall or posedge EX_reset_reg) begin
+    always @(posedge soc_clk or posedge EX_reset_reg) begin
         if (EX_stall) begin
             result_data <= 32'b0;
             result_ready <= 1'b0;

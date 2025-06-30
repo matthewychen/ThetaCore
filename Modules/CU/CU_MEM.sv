@@ -3,7 +3,9 @@ module CU_MEM(
     input soc_clk,
     input MEM_reset,
     input MEM_stall,
-    input memfetch_start,
+    input MEM_poweron,
+    
+    input memfetch_start, //why is this here
     input [31:0] addr,
     input [3:0] bits_to_access,
     input read_or_write, //should always be read in IF
