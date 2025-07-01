@@ -23,6 +23,18 @@ module CU_ID(
     output reg invalid_instruction      // Error flag
 );
 
+reg ID_ready_reg;
+reg [5:0] Instruction_to_CU_reg;  // Decoded instruction type
+reg [4:0] Instruction_to_ALU_reg; // ALU operation code
+reg [31:0] imm_reg;              // Immediate value
+reg [4:0] rd_reg;                // Destination register
+reg [4:0] rs1_reg;               // Source register 1
+reg [4:0] rs2_reg;               // Source register 2
+reg [4:0] shamt_reg;             // Shift amount
+reg [31:0] pc_increment_reg;     // PC increment value
+reg [1:0] pipeline_override_reg; // Pipeline hazard control
+reg invalid_instruction_reg;      // Error flag
+
 //save instruction in register every time new data is available, unless stalled
 reg [31:0] reg_instruction;
 reg [1:0] ID_stage_counter;
@@ -53,8 +65,10 @@ end
 
 //Unconditional stage counter incrementation
 
-initial begin
-    ID_stage_counter <= 2'b11;
+always@(posedge ID_poweron) begin //happens once on poweron
+    ID_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
+    ID_reset_reg <= 0;
+    ID_stall_reg <= 0;
 end
 
 always @(posedge soc_clk) begin //unconditional stage incrementation
@@ -76,6 +90,20 @@ always @(posedge soc_clk or posedge ID_reset_reg) begin
             end
             
             2'b11: begin // Stage 3: Finished
+            //IDU_ready should be asserted here. Drive all data
+            if(IDU_ready_reg) begin
+                ID_ready <= 1;
+                Instruction_to_CU = Instruction_to_CU_reg;
+                Instruction_to_ALU = Instruction_to_ALU_reg; 
+                imm = imm_reg;
+                rd =rd_reg;
+                rs1 = rs1_reg;
+                rs2 = rs2_reg;
+                shamt = shamt_reg;
+                pc_increment = pc_increment_reg;
+                pipeline_override = pipeline_override_reg;
+                invalid_instruction = invalid_instruction_reg;
+            end
             end
         endcase
     end
@@ -89,19 +117,20 @@ IDU_top instruction_decode_unit(
     .Fetch_ready(decode_start),    // Connect to decode_start from CU
     .instruction(reg_instruction),           // Connect to instruction from CU
     .IDU_stall(IDU_stall),         // Connect to stall signal
+    .IDU_poweron(ID_poweron),
     
     // Connect all outputs (using direct pass-through)
-    .IDU_ready(IDU_ready),
-    .Instruction_to_CU(Instruction_to_CU),
-    .Instruction_to_ALU(Instruction_to_ALU),
-    .imm(imm),
-    .rd(rd),
-    .rs1(rs1),
-    .rs2(rs2),
-    .shamt(shamt),
-    .pc_increment(pc_increment),
-    .pipeline_override(pipeline_override),
-    .invalid_instruction(invalid_instruction)
+    .IDU_ready(IDU_ready_reg),
+    .Instruction_to_CU(Instruction_to_CU_reg),
+    .Instruction_to_ALU(Instruction_to_ALU_reg),
+    .imm(imm_reg),
+    .rd(rd_reg),
+    .rs1(rs1_reg),
+    .rs2(rs2_reg),
+    .shamt(shamt_reg),
+    .pc_increment(pc_increment_reg),
+    .pipeline_override(pipeline_override_reg),
+    .invalid_instruction(invalid_instruction_reg)
 );
 
 endmodule

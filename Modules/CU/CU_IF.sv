@@ -34,9 +34,11 @@ module CU_IF(
         end
     end
 
-    initial begin
-        IF_stage_counter <= 2'b11;
-    end
+always@(posedge IF_poweron) begin //happens once on poweron
+    IF_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
+    IF_reset_reg <= 0;
+    IF_stall_reg <= 0;
+end
 
     always @(posedge soc_clk) begin //unconditional stage incrementation
         IF_stage_counter <= IF_stage_counter + 1'b1;

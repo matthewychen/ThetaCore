@@ -32,9 +32,11 @@ module CU_MEM(
         end
     end
 
-    initial begin
-        MEM_stage_counter <= 2'b11;
-    end
+always@(posedge MEM_poweron) begin //happens once on poweron
+    MEM_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
+    MEM_reset_reg <= 0;
+    MEM_stall_reg <= 0;
+end
 
     always @(posedge soc_clk) begin //unconditional stage incrementation
         MEM_stage_counter <= MEM_stage_counter + 1'b1;

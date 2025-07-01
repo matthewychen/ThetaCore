@@ -63,7 +63,7 @@ module CU_EX(
     end
 
     // Counter management
-    initial begin
+    always@(posedge EX_poweron) begin //happens once on poweron
         EX_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
         EX_reset_reg <= 0;
         EX_stall_reg <= 0;

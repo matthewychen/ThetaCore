@@ -116,14 +116,19 @@ always@(posedge poweron) begin //instantiate everything to 0. Poweron sequence.
 end
 
 always@(posedge soc_clk) begin
-    if(poweron_state != WB) begin
+    if(poweron_state != WB) begin //sequentially poweron all modules. No pipelining yet.
         case(poweron_state)
             JUSTON:
+            poweron_state <= IF;
             IF:
+            poweron_state <= ID;
             ID:
+            poweron_state <= EX;
             EX:
+            poweron_state <= MEM;
             MEM:
-            default: //move to poweron state
+            poweron_state <= WB;
+            default: //move to full poweron state. no action
         endcase
     end
     else begin
@@ -154,7 +159,57 @@ always@(posedge soc_clk) begin
     end
 end
 
-//WB MODULE FUNCTIONALITY GOES HERE
+
+
+
+
+
+
+// ----------- WB MODULE ----------- //
+
+always@(posedge soc_clk or posedge MEM_reset) begin
+    if(MEM_reset) begin
+        // Immediate reset response
+        MEM_reset_reg <= 1;
+    end else if(MEM_stall) begin
+        // Set stall flag
+        MEM_stall_reg <= 1;
+    end else if(MEM_stage_counter == 2'b00) begin
+        // Clear flags only at stage 0 and if no new reset/stall
+        MEM_reset_reg <= 0;
+        MEM_stall_reg <= 0;
+    end
+end
+
+reg WB_reset_reg;
+reg WB_stall_reg;
+
+always@(posedge WB_poweron) begin //happens once on poweron
+    WB_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
+    WB_reset_reg <= 0;
+    WB_stall_reg <= 0;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //ERROR CATCH BLOCK
 always@(posedge ALU_err or posedge invalid_instruction) begin //include other errors as they come

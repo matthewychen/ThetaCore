@@ -5,6 +5,7 @@ module IDU_top(
     input [31:0] instruction,
     input Fetch_ready,
     input IDU_stall,
+    input IDU_poweron,
 
     output reg IDU_ready, //CU read cue
     output reg [4:0] Instruction_to_ALU, //ALU instruction select, only driven if relevant, otherwise left at invalid = 5'd16
@@ -47,7 +48,7 @@ reg [3:0] decryptedOPtype;
 //11 -> invalid
 //12 -> initial
 
-initial begin
+always@(posedge IDU_poweron) begin
     decryptedOPtype <= 12;
     imm <= 32'bz;
     rd <= 5'bz;
