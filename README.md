@@ -2,7 +2,7 @@
 
 This is a project that aims to construct a single RISC-V ISA-based CPU and associated RAM using the R32I instruction set (and the R32F extension if time and interest permit).
 
-Key features will include conditional branching, pipelining, ALUops, and 4kb of user-dictable memory.
+Key features will include conditional branching, ALUops, and 4kb of user-dictable memory. It does not currently support branching.
 
 #### To create testbench:
 

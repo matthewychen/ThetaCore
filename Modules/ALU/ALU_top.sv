@@ -2,7 +2,6 @@ module ALU_top(
     //templated
     input soc_clk,
     input reset,
-    input dat_ready, //CU processing finished
 
     //databusses
     input [31:0] ALU_dat1,
@@ -17,7 +16,7 @@ module ALU_top(
         //1'b1 -> I/R type (ALU_out needs calculation)
         //1'b0 -> B type (ALU_out redundant, all that is needed is branching flag)
 
-    input [4:0] Instruction_to_ALU, //from IDU -> CU reg -> ALU
+    input [4:0] Instruction_to_CU, //from IDU -> CU reg -> ALU
 
     //flags
     output reg ALU_overflow,
@@ -152,6 +151,44 @@ module ALU_top(
             ALU_ready <= 0;
         end
     end
+
+
+    //IMPLEMENT THE DECODING:
+        //specific instructions for ALU
+    always@(Instruction_to_CU) begin 
+        case(Instruction_to_CU)
+            //B
+            4: Instruction_to_ALU = 5'd0; //BEQ branch equal
+            5: Instruction_to_ALU = 5'd1; //BNE branch not equal
+            6: Instruction_to_ALU = 5'd2; //BLT branch less than
+            7: Instruction_to_ALU = 5'd3; //BGE branch greater than or equal
+            8: Instruction_to_ALU = 5'd4; //BLTU branch less than unsigned
+            9: Instruction_to_ALU = 5'd5; //BGEU branch greater than or equal unsigned
+
+            //I/R
+            27: Instruction_to_ALU = 5'd6; //ADD add 
+            18: Instruction_to_ALU = 5'd6; //ADDI add 
+            28: Instruction_to_ALU = 5'd7; //SUB subtract 
+            29: Instruction_to_ALU = 5'd8; //SLL logical leftshift 
+            24: Instruction_to_ALU = 5'd8; //SLLI logical leftshift
+            30: Instruction_to_ALU = 5'd9; //SLT set less than
+            19: Instruction_to_ALU = 5'd9; //SLTI set less than
+            31: Instruction_to_ALU = 5'd10; //SLTU set less than unsigned
+            32: Instruction_to_ALU = 5'd11; //XOR xor 
+            21: Instruction_to_ALU = 5'd11; //XORI xor 
+            33: Instruction_to_ALU = 5'd12; //SRL logical rightshift 
+            25: Instruction_to_ALU = 5'd12; //SRLI logical rightshift 
+            34: Instruction_to_ALU = 5'd13; //SRA arithmetic rightshift
+            26: Instruction_to_ALU = 5'd13; //SRAI arithmetic rightshift 
+            35: Instruction_to_ALU = 5'd14; //OR or
+            22: Instruction_to_ALU = 5'd14; //ORI or
+            36: Instruction_to_ALU = 5'd15; //AND and
+            23: Instruction_to_ALU = 5'd15; //ANDI and
+
+            default: Instruction_to_ALU = 5'd16; //no operation
+        endcase
+        IDU_ready = 1;
+end
 
     //instantiations
     AddSub AS(
