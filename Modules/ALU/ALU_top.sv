@@ -2,21 +2,9 @@
         //templated
         input soc_clk,
         input reset,
-        input dat_ready,
-
         //databusses
         input [31:0] ALU_dat1,
         input [31:0] ALU_dat2,
-        //input [2:0] ALU_opcode, //from [14:12] of instruction
-
-        //input ALU_opcode_differentiator, //purely for use of ADD/SUB, SRI/SRA, SRLI/SRAI differentiator. from [2] of instruction.
-            //1'b0 -> default state
-            //1'b1 -> indicates SUB, SRA, or SRAI operation
-
-        //input ALU_optype, //
-            //1'b1 -> I/R type (ALU_out needs calculation)
-            //1'b0 -> B type (ALU_out redundant, all that is needed is branching flag)
-
         input [5:0] Instruction_from_CU, //from IDU -> CU reg -> ALU
 
         //flags
@@ -27,7 +15,8 @@
         output reg ALU_ready,
 
         //to CU
-        output reg [31:0] ALU_out
+        output reg [31:0] ALU_out,
+        output ALU_accept
         );
 
         //for storage to mitigate data loss
@@ -43,6 +32,8 @@
         wire Comparator_con_met; // Missing declaration
         wire [31:0] LogOp_out;
         wire [31:0] Shifter_out;
+
+        assign ALU_accept = (ALU_result_counter == 2'b00);
 
         always@(posedge soc_clk) begin
             if (reset) begin
@@ -62,9 +53,13 @@
                 
                 case(ALU_result_counter)
                     2'b00: begin
+                        ALU_result_counter <= 01;
+                        ALU_ready <= 1'b0;
+                    end
+                    2'b01: begin
                         // Idle state
                         ALU_ready <= 1'b0;
-                        if(dat_ready) begin
+                        
                             reg_ALU_dat1 <= ALU_dat1;
                             reg_ALU_dat2 <= ALU_dat2;
                         
@@ -97,14 +92,9 @@
                             22: Instruction_to_ALU <= 5'd14; //ORI or
                             36: Instruction_to_ALU <= 5'd15; //AND and
                             23: Instruction_to_ALU <= 5'd15; //ANDI and
-
                             default: Instruction_to_ALU <= 5'd16; //no operation
                             endcase
-                            ALU_result_counter <= 2'b01;
-                        end
-                    end
-                    2'b01: begin
-                        ALU_result_counter <= 2'b10;
+                            ALU_result_counter <= 2'b10;
                     end
                     2'b10: begin 
                         ALU_result_counter <= 2'b11;
@@ -189,9 +179,6 @@
 
         //instantiations
         AddSub AS(
-            .soc_clk(soc_clk),
-            .reset(reset),
-            .dat_ready(dat_ready),
             .ALU_dat1(reg_ALU_dat1),
             .ALU_dat2(reg_ALU_dat2),
             .Instruction_to_ALU(Instruction_to_ALU),
@@ -200,9 +187,6 @@
         );
 
         Comparator C(
-            .soc_clk(soc_clk),
-            .reset(reset),
-            .dat_ready(dat_ready),
             .ALU_dat1(reg_ALU_dat1),
             .ALU_dat2(reg_ALU_dat2),
             .Instruction_to_ALU(Instruction_to_ALU),
@@ -211,9 +195,6 @@
         );
 
         LogOp LO(
-            .soc_clk(soc_clk),
-            .reset(reset),
-            .dat_ready(dat_ready),
             .ALU_dat1(reg_ALU_dat1),
             .ALU_dat2(reg_ALU_dat2),
             .Instruction_to_ALU(Instruction_to_ALU),
@@ -221,9 +202,6 @@
         );
 
         Shifter S(
-            .soc_clk(soc_clk),
-            .reset(reset),
-            .dat_ready(dat_ready),
             .ALU_dat1(reg_ALU_dat1),
             .ALU_dat2(reg_ALU_dat2),
             .Instruction_to_ALU(Instruction_to_ALU),

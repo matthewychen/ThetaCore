@@ -35,7 +35,6 @@ module CU_EX(
     ALU_top ALU(
         .soc_clk(soc_clk),
         .reset(EX_reset),
-        .dat_ready(dat_ready),
         .ALU_dat1(rs1_data),
         .ALU_dat2(rs2_data),
         .Instruction_from_CU(Instruction_to_ALU),

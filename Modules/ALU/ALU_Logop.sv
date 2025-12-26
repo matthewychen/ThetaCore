@@ -9,18 +9,16 @@ module LogOp(
     output reg [31:0] LogOp_out
 );
 
-always@(posedge soc_clk) begin
-    if (reset) begin
-        LogOp_out <= 32'b0;
-    end
-    else if (dat_ready) begin
-        case (Instruction_to_ALU)
-            5'd11: LogOp_out <= ALU_dat1 ^ ALU_dat2; // XOR
-            5'd14: LogOp_out <= ALU_dat1 | ALU_dat2; // OR
-            5'd15: LogOp_out <= ALU_dat1 & ALU_dat2; // AND
-            default: LogOp_out <= 32'b0;
-        endcase
-    end
+always @(*) begin
+    // default prevents latches
+    LogOp_out = 32'b0;
+
+    case (Instruction_to_ALU)
+        5'd11: LogOp_out = ALU_dat1 ^ ALU_dat2; // XOR
+        5'd14: LogOp_out = ALU_dat1 | ALU_dat2; // OR
+        5'd15: LogOp_out = ALU_dat1 & ALU_dat2; // AND
+        default: LogOp_out = 32'b0;
+    endcase
 end
 
 

@@ -22,10 +22,11 @@ module tb_alu;
     //----------------------------------------------------------------
     // DUT Instantiation
     //----------------------------------------------------------------
+    wire ALU_accept;
+
     ALU_top dut (
         .soc_clk(soc_clk),
         .reset(reset),
-        .dat_ready(dat_ready),
         .ALU_dat1(ALU_dat1),
         .ALU_dat2(ALU_dat2),
         .Instruction_from_CU(Instruction_from_CU),
@@ -34,8 +35,10 @@ module tb_alu;
         .ALU_zero(ALU_zero),
         .ALU_err(ALU_err),
         .ALU_ready(ALU_ready),
-        .ALU_out(ALU_out)
+        .ALU_out(ALU_out),
+        .ALU_accept(ALU_accept)   // ← ADD THIS
     );
+
 
     //----------------------------------------------------------------
     // Clock Generation
@@ -146,45 +149,58 @@ task testsequence;
     input exp_zero;
     input exp_ovf;
     input exp_con;
-    
-    begin
-        // 1. Drive inputs
-        ALU_dat1 = in1;
-        ALU_dat2 = in2;
-        Instruction_from_CU = instr;
-
-        // 2. WAIT a cycle so inputs are stable
+begin
+    // --------------------------------------------------
+    // 1. Wait until ALU explicitly accepts a new op
+    // --------------------------------------------------
+    while (!ALU_accept)
         @(posedge soc_clk);
 
-        // 3. Handshake: pulse dat_ready
-        dat_ready = 1;
+    // --------------------------------------------------
+    // 2. Drive inputs while accept is HIGH
+    //    (must be stable before capture edge)
+    // --------------------------------------------------
+    ALU_dat1 <= in1;
+    ALU_dat2 <= in2;
+    Instruction_from_CU <= instr;
+
+    // --------------------------------------------------
+    // 3. Capture happens on THIS posedge
+    // --------------------------------------------------
+    @(posedge soc_clk);
+
+    // --------------------------------------------------
+    // 4. Wait for result valid
+    // --------------------------------------------------
+    while (!ALU_ready)
         @(posedge soc_clk);
-        dat_ready = 0;
 
-        // 4. Wait for result
-        while (!ALU_ready)
-            @(posedge soc_clk);
+    // --------------------------------------------------
+    // 5. Check outputs
+    // --------------------------------------------------
+    if (ALU_out !== exp_out ||
+        ALU_zero !== exp_zero ||
+        ALU_overflow !== exp_ovf ||
+        ALU_con_met !== exp_con) begin
 
-        // 5. Check results
-        if (ALU_out !== exp_out ||
-            ALU_zero !== exp_zero ||
-            ALU_overflow !== exp_ovf ||
-            ALU_con_met !== exp_con) begin
-
-            $display("ERROR: %0s FAILED", name);
-            $display("  Inputs: A=%h, B=%h, Instr=%d", in1, in2, instr);
-            $display("  Expected: Out=%h, zeroflag=%b, overflow=%b, condition=%b",
-                     exp_out, exp_zero, exp_ovf, exp_con);
-            $display("  Actual:   Out=%h, zeroflag=%b, overflow=%b, condition=%b",
-                     ALU_out, ALU_zero, ALU_overflow, ALU_con_met);
-        end else begin
-            $display("PASS: %0s", name);
-        end
-
-        // 6. Cooldown
-        repeat (2) @(posedge soc_clk);
+        $display("ERROR: %0s FAILED", name);
+        $display("  Inputs: A=%h, B=%h, Instr=%d", in1, in2, instr);
+        $display("  Expected: Out=%h, zeroflag=%b, overflow=%b, condition=%b",
+                 exp_out, exp_zero, exp_ovf, exp_con);
+        $display("  Actual:   Out=%h, zeroflag=%b, overflow=%b, condition=%b",
+                 ALU_out, ALU_zero, ALU_overflow, ALU_con_met);
+    end else begin
+        $display("PASS: %0s", name);
     end
+
+    // --------------------------------------------------
+    // 6. Cooldown (optional but clean)
+    // --------------------------------------------------
+    @(posedge soc_clk);
+end
 endtask
+
+
 
 
 endmodule
