@@ -7,28 +7,19 @@ module LogOp(
     input [4:0] Instruction_to_ALU,
 
     output reg [31:0] LogOp_out
-    //no flags
 );
 
 always@(posedge soc_clk) begin
-    if (reset || ~dat_ready) begin
+    if (reset) begin
         LogOp_out <= 32'b0;
     end
-    else begin
-        if (Instruction_to_ALU == 15) begin //AND
-            LogOp_out <= ALU_dat1 & ALU_dat2;
-        end
-        else if (Instruction_to_ALU == 14) begin //OR
-            LogOp_out <= ALU_dat1 | ALU_dat2;
-
-        end
-        else if (Instruction_to_ALU == 11) begin //XOR
-            LogOp_out <= ALU_dat1 ^ ALU_dat2;
-
-        end
-        else begin //invalid
-            LogOp_out <= 32'b0;
-        end
+    else if (dat_ready) begin
+        case (Instruction_to_ALU)
+            5'd11: LogOp_out <= ALU_dat1 ^ ALU_dat2; // XOR
+            5'd14: LogOp_out <= ALU_dat1 | ALU_dat2; // OR
+            5'd15: LogOp_out <= ALU_dat1 & ALU_dat2; // AND
+            default: LogOp_out <= 32'b0;
+        endcase
     end
 end
 

@@ -16,16 +16,6 @@ module CU_top(
 
 );
 
-reg [2:0] poweron_state;
-localparam JUSTON = 0;
-localparam IF = 1;
-localparam ID = 2;
-localparam EX = 3;
-localparam MEM = 4;
-localparam WB = 5;
-
-reg [1:0] CU_result_counter; //actually needed in CU to implement pipelining override and coordinate various activities.
-
 reg [31:0] Cu_PC; //if PC > 4*128: kill
 reg [31:0] Cu_IR; //collect from memfetch at some point
 reg [31:0] Cu_MDR;
@@ -68,7 +58,6 @@ reg [31:0][31:0] CU_reg;
 // reg_31: temp reg 6                                                  | t6
 
 //from IDU
-reg IDU_ready;
 reg [5:0] Instruction_to_CU;
 reg [4:0] Instruction_to_ALU; //needs to be outputted to ALU 1 clock cycle before dat_ready
 //databusses
@@ -79,30 +68,6 @@ reg [4:0] rs2;
 reg [4:0] shamt;
 reg [31:0] pc_increment;
 
-//flags
-reg [1:0] pipeline_override;
-    //00 -> no override on next instruction
-    //01 -> override rs1
-    //10 -> override rs2
-
-reg memfetch_start;
-reg decode_start;
-reg WB_poweron,
-reg last_branch_state; //for simple branch prediction
-
-reg IF_reset;
-reg ID_reset;
-reg EX_reset;
-reg MEM_reset;
-reg WB_reset;
-
-reg IF_stall;
-reg ID_stall;
-reg EX_stall;
-reg MEM_stall;
-reg WB_stall;
-
-
 always@(posedge poweron) begin //instantiate everything to 0. Poweron sequence.
     CU_result_counter = 2'b11;
     memfetch_start = 0;
@@ -112,26 +77,9 @@ always@(posedge poweron) begin //instantiate everything to 0. Poweron sequence.
     MEM_reset <= 1'b0;
     WB_reset <= 1'b0;
     poweron_state <= JUSTON;
-
 end
 
 always@(posedge soc_clk) begin
-    if(poweron_state != WB) begin //sequentially poweron all modules. No pipelining yet.
-        case(poweron_state)
-            JUSTON:
-            poweron_state <= IF;
-            IF:
-            poweron_state <= ID;
-            ID:
-            poweron_state <= EX;
-            EX:
-            poweron_state <= MEM;
-            MEM:
-            poweron_state <= WB;
-            default: //move to full poweron state. no action
-        endcase
-    end
-    else begin
         if(CU_result_counter == 0) begin //all ready signals should be asserted here
             //query for memory read
             //memfetch should assert Fetch_ready to IDU, IDU should begin decryption now
@@ -156,38 +104,11 @@ always@(posedge soc_clk) begin
             //CU_result_counter = 0; DONT reset as this will shorten the stage length to 3 instead of 4. should overflow automatically
             CU_result_counter = CU_result_counter + 1;
         end
-    end
 end
-
-
-
-
-
-
 
 // ----------- WB MODULE ----------- //
 
-always@(posedge soc_clk or posedge MEM_reset) begin
-    if(MEM_reset) begin
-        // Immediate reset response
-        MEM_reset_reg <= 1;
-    end else if(MEM_stall) begin
-        // Set stall flag
-        MEM_stall_reg <= 1;
-    end else if(MEM_stage_counter == 2'b00) begin
-        // Clear flags only at stage 0 and if no new reset/stall
-        MEM_reset_reg <= 0;
-        MEM_stall_reg <= 0;
-    end
-end
-
-reg WB_reset_reg;
-reg WB_stall_reg;
-
-always@(posedge WB_poweron) begin //happens once on poweron
-    WB_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
-    WB_reset_reg <= 0;
-    WB_stall_reg <= 0;
+always@(posedge soc_clk) begin
 end
 
 
