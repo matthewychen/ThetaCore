@@ -10,25 +10,17 @@ module CU_EX(
     output overflow_flag,
     output zero_flag,
     output condition_met_flag,
-    output error_flag
+    output error_flag,
+    output EX_accept,
+    output [1:0] stage_counter
 );
 
     reg dat_ready;
-    reg [1:0] stage_counter;
     
     always@(posedge soc_clk or posedge EX_reset) begin
         if(EX_reset) begin
-            stage_counter <= 0;
-            dat_ready <= 0;
         end
         else begin
-            stage_counter <= stage_counter + 1;
-            case(stage_counter)
-                0: dat_ready <= 1;    // Latch inputs
-                1: dat_ready <= 1;    // Hold and compute
-                2: dat_ready <= 1;    // Still computing
-                3: dat_ready <= 0;    // Output ready
-            endcase
         end
     end
 
@@ -43,7 +35,9 @@ module CU_EX(
         .ALU_zero(zero_flag),
         .ALU_err(error_flag),
         .ALU_ready(result_ready),
-        .ALU_out(result_data)
+        .ALU_out(result_data),
+        .ALU_accept(EX_accept),
+        .ALU_result_counter(stage_counter)
     );
 
 endmodule

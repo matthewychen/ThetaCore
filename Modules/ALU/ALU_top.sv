@@ -16,15 +16,14 @@
 
         //to CU
         output reg [31:0] ALU_out,
-        output ALU_accept
+        output ALU_accept,
+        output reg [1:0] ALU_result_counter
         );
 
         //for storage to mitigate data loss
         reg [4:0] Instruction_to_ALU;
         reg [31:0] reg_ALU_dat1;
         reg [31:0] reg_ALU_dat2;
-
-        reg [1:0] ALU_result_counter;
         
         wire [31:0] AddSub_out;
         wire AddSub_overflow;  // Missing declaration

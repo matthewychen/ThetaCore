@@ -22,23 +22,27 @@ module tb_alu;
     //----------------------------------------------------------------
     // DUT Instantiation
     //----------------------------------------------------------------
-    wire ALU_accept;
+wire [1:0] stage_counter;
+wire EX_accept;
 
-    ALU_top dut (
-        .soc_clk(soc_clk),
-        .reset(reset),
-        .ALU_dat1(ALU_dat1),
-        .ALU_dat2(ALU_dat2),
-        .Instruction_from_CU(Instruction_from_CU),
-        .ALU_overflow(ALU_overflow),
-        .ALU_con_met(ALU_con_met),
-        .ALU_zero(ALU_zero),
-        .ALU_err(ALU_err),
-        .ALU_ready(ALU_ready),
-        .ALU_out(ALU_out),
-        .ALU_accept(ALU_accept)   // ← ADD THIS
-    );
+CU_EX dut (
+    .soc_clk(soc_clk),
+    .EX_reset(reset),
 
+    .rs1_data(ALU_dat1),
+    .rs2_data(ALU_dat2),
+    .imm_data(32'b0),              // unused for now
+    .Instruction_to_ALU(Instruction_from_CU),
+
+    .result_data(ALU_out),
+    .result_ready(ALU_ready),
+    .overflow_flag(ALU_overflow),
+    .zero_flag(ALU_zero),
+    .condition_met_flag(ALU_con_met),
+    .error_flag(ALU_err),
+    .EX_accept(EX_accept),
+    .stage_counter(stage_counter)
+);
 
     //----------------------------------------------------------------
     // Clock Generation
@@ -153,7 +157,7 @@ begin
     // --------------------------------------------------
     // 1. Wait until ALU explicitly accepts a new op
     // --------------------------------------------------
-    while (!ALU_accept)
+    while (!EX_accept)
         @(posedge soc_clk);
 
     // --------------------------------------------------
