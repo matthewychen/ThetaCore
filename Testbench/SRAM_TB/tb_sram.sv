@@ -17,7 +17,7 @@ module tb_SRAM;
     logic [DATA_WIDTH-1:0] dataout;
 
     // Instantiate SRAM (see: SRAM/SRAM.sv)
-    SRAM dut (
+    SRAM_sim dut (
         .clk(clk),
         .reset(reset),
         .addr_sel(addr_sel),

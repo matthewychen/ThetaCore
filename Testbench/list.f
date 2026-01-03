@@ -6,6 +6,7 @@
 ../SRAM/SRAMAddress.sv
 ../SRAM/SRAM.sv
 ../SRAM/SRAMbyte.sv
+../SRAM/SRAM_sim.sv
 
 //../Modules/ALU/ALU_Addsub.sv
 //../Modules/CU/CU_EX.sv
