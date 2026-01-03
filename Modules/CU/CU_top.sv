@@ -68,42 +68,7 @@ reg [4:0] rs2;
 reg [4:0] shamt;
 reg [31:0] pc_increment;
 
-always@(posedge poweron) begin //instantiate everything to 0. Poweron sequence.
-    CU_result_counter = 2'b11;
-    memfetch_start = 0;
-    IF_reset <= 1'b0;    
-    ID_reset <= 1'b0;
-    EX_reset <= 1'b0;
-    MEM_reset <= 1'b0;
-    WB_reset <= 1'b0;
-    poweron_state <= JUSTON;
-end
-
-always@(posedge soc_clk) begin
-        if(CU_result_counter == 0) begin //all ready signals should be asserted here
-            //query for memory read
-            //memfetch should assert Fetch_ready to IDU, IDU should begin decryption now
-            //decode IDU_result
-            CU_result_counter = CU_result_counter + 1;
-        end
-        else if(CU_result_counter == 1) begin
-            // begin setting outputs to child modules
-            // collect decoded from IDU: use this to:
-            // evaluate branch/override condition
-            CU_result_counter = CU_result_counter + 1;
-        end
-        else if(CU_result_counter == 2) begin
-            //check pipelining from IDU; perform rs1 override if nessessary on ALU inputs
-            //set all other ALU inputs, including Instruction_to_ALU
-            CU_result_counter = CU_result_counter + 1;
-        end
-        else if(CU_result_counter == 3) begin
-            //CU_ready to ALU
-            //Increment PC.
-            //conclude cycle
-            //CU_result_counter = 0; DONT reset as this will shorten the stage length to 3 instead of 4. should overflow automatically
-            CU_result_counter = CU_result_counter + 1;
-        end
+always@(posedge soc_clk) begin //TOP LEVEL ORGANIZATION of instruction
 end
 
 // ----------- WB MODULE ----------- //

@@ -1,43 +1,48 @@
-//interface between the CPU and SRAM
-//translates CU commands into byte addresses and retrieves from/stores in SRAM
-
 module MMU(
-    //TO CU
     input soc_clk,
-    input MMU_stall,
-    input MMU_flush,
-    input [31:0] CU_address, //for compatability reasons, 32b. this is copied from PC.
-    input [3:0] CU_bytesel, //for byte-addressability.
+
+    // FROM CU
+    input [31:0] CU_address,   // byte address
+    input [3:0]  CU_bytesel,   // byte enables
     input [31:0] CU_dat_in,
-    input read_or_write,
-    //1'b0 ---> read
-    //1'b1 ---> write
+    input        read_or_write, // 0 = read, 1 = write
+    input        retrieve,      // start memory op (pulse)
 
-    input retrieve, //start query. Start retrieval on posedge. May be driven either 2 times or 1 time per 4-stage cycle, depending on if a memory operation is needed in MEM.
-
-    //out to CU
-    output reg [31:0] CU_dat_out, //raw instruction from address
-    output reg MMU_ready, //on successful completion of read or write
-
-    //TO SRAM
-    //in from SRAM
-    input [31:0] SRAM_dat_out,
-
-    //out to SRAM. Needs to pass through CU to tb_top and into SRAM.
-    output reg [6:0] SRAM_addr_sel,
-    output reg [3:0] SRAM_byte_sel,
-    output read_pulse,
-    output write_pulse,
-    input reg [31:0] SRAM_dat_in
+    // TO CU
+    output reg [31:0] CU_dat_out,
+    output reg        mmu_complete
 );
 
-//goals:
-// given offset from CU convert to address and byte address
-// read/write pulse generation to SRAM
-// process datawidth if nessessary, make sure that data if <32b are stored in MSB and logicalshift right.
-// flag when complete
+    // --------------------------------------------
+    // Internal SRAM signals
+    // --------------------------------------------
+    reg  [6:0]  SRAM_addr_sel;
+    reg  [3:0]  SRAM_byte_sel;
+    reg         read_pulse;
+    reg         write_pulse;
+    reg  [31:0] SRAM_dat_in;
 
-//note: use instruction-aligned address, so CU_address [31:2].
+    wire [31:0] SRAM_dat_out;
+    wire        SRAM_complete;
 
+    // --------------------------------------------
+    // SRAM instance
+    // --------------------------------------------
+    SRAM sram_inst (
+        .addr_sel   (SRAM_addr_sel),
+        .byte_sel   (SRAM_byte_sel),
+        .read_pulse (read_pulse),
+        .write_pulse(write_pulse),
+        .datain     (SRAM_dat_in),
+        .dataout    (SRAM_dat_out),
+        .flg_complete(SRAM_complete)
+    );
+
+    // --------------------------------------------
+    // MMU control FSM (stub for now)
+    // --------------------------------------------
+    always @(posedge soc_clk) begin
+        // to be implemented
+    end
 
 endmodule

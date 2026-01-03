@@ -11,30 +11,25 @@ module CU_IF(
 );
     reg [1:0] IF_stage_counter;
 
-always@(posedge IF_poweron) begin //happens once on poweron
-    IF_stage_counter <= 2'b11; //let it wrap to 00 on the first posedge of soc_clk
-    IF_reset_reg <= 0;
-    IF_stall_reg <= 0;
-end
-    always @(posedge soc_clk) begin //unconditional stage incrementation
-        IF_stage_counter <= IF_stage_counter + 1'b1;
-    end
-
     always @(posedge soc_clk or posedge IF_reset_reg) begin
         if (IF_reset_reg) begin
             // Reset state
         end else begin
             case(IF_stage_counter)
                 2'b00: begin // Stage 0: Save incoming values
+                IF_stage_counter <= 2'b01;
                 end
                 
                 2'b01: begin // Stage 1: Maybe override inputs
+                IF_stage_counter <= 2'b10;
                 end
                 
                 2'b10: begin // Stage 2: Processing time
+                IF_stage_counter <= 2'b11;
                 end
                 
                 2'b11: begin // Stage 3: Finished
+                IF_stage_counter <= 2'b00;
                 end
             endcase
         end
