@@ -1,6 +1,6 @@
 module SRAMaddress(
     input  logic        clk,
-    input  logic        WL,
+    input  logic        wordline,
     input  logic [3:0]  byte_sel,
     input  logic [31:0] datain,
     input  logic        read_enable,
@@ -17,7 +17,7 @@ module SRAMaddress(
         for (i = 0; i < 4; i = i + 1) begin : SRAM_bytes
             SRAMbyte SRAMbyte_inst(
                 .clk(clk),
-                .WL(WL & byte_sel[i]),
+                .wordline(wordline & byte_sel[i]),
                 .datain(datain[8*i +: 8]),
                 .read_enable(read_enable),
                 .write_enable(write_enable),

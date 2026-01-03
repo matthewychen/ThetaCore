@@ -6,7 +6,7 @@ module SRAM(
     input  logic        read_enable,    // synchronous read enable
     input  logic        write_enable,   // synchronous write enable
     input  logic [31:0] datain,
-    output logic [31:0] dataout
+    output wire [31:0] dataout
 );
 
     // Wordline selection for each address
@@ -17,9 +17,9 @@ module SRAM(
     // Drive WL_sel and byte selection synchronously
     always @(posedge clk) begin
         if (reset) begin
-            WL_sel <= 128'd0;
-            SRAMAddress_byte_sel <= 4'd0;
-            dataout <= 32'd0;
+            WL_sel <= 128'b0;
+            SRAMAddress_byte_sel <= 4'b0;
+            
         end else begin
             WL_sel <= 128'd0;                 // clear all wordlines each cycle
             if (read_enable || write_enable) begin
@@ -28,6 +28,8 @@ module SRAM(
             end
         end
     end
+    
+    assign dataout = reset ? 32'b0 : ~read_enable ? 32'b0 : dataout_array[addr_sel];
 
     // Instantiate each 32-bit address
     genvar i;
@@ -35,7 +37,7 @@ module SRAM(
         for (i = 0; i < 128; i = i + 1) begin : SRAM_addrs
             SRAMaddress SRAMaddress_inst(
                 .clk(clk),
-                .WL(WL_sel[i]),
+                .wordline(WL_sel[i]),
                 .byte_sel(SRAMAddress_byte_sel),
                 .datain(datain),
                 .dataout(dataout_array[i]),
@@ -44,14 +46,6 @@ module SRAM(
             );
         end
     endgenerate
-
-    // Output the selected address data
-    always @(posedge clk) begin
-        if (reset)
-            dataout <= 32'd0;
-        else if (read_enable)
-            dataout <= dataout_array[addr_sel]; // register read output
-    end
 
 
 endmodule
