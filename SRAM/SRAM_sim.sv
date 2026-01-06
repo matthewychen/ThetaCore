@@ -13,6 +13,8 @@ module SRAM_sim(
 
     reg [31:0] memory [127:0];
     reg [31:0] reg_dataout;
+    reg read_valid;
+
 
     integer i;
 
@@ -30,7 +32,7 @@ module SRAM_sim(
             end
             else if (write_enable) begin
                 if(byte_sel[0]==1) begin
-                    memory[addr_sel][7:0] <= datain[8:0];
+                    memory[addr_sel][7:0] <= datain[7:0];
                 end
 
                 if(byte_sel[1]==1) begin
@@ -47,11 +49,12 @@ module SRAM_sim(
             end
             else if (read_enable) begin //partial reads are not supported, only partial writes
                 reg_dataout <= memory[addr_sel];
+                read_valid  <= 1'b1;
             end
         end
     end
     
-    assign dataout = reset ? 32'b0 : ~read_enable ? 32'b0 : reg_dataout;
+assign dataout = (reset || !read_valid) ? 32'b0 : reg_dataout;
 
 
 endmodule

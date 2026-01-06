@@ -20,9 +20,11 @@
 ../Components/Components/rippleadder.sv
 ../Components/Components/twoscomp.sv
 
+../Modules/MMU.sv
+./MMU_TB/tb_mmu.sv
 
 //./tb_top.sv
-./SRAM_TB/tb_sram.sv
+//SRAM_TB/tb_sram.sv
 //./IDU_TB/tb_idu.sv
 //./ALU_TB/tb_alu.sv
 //../Modules/IDU/IDU_top.sv
