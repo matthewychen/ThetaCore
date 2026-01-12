@@ -3,6 +3,7 @@ module CU_ID(
     input wire soc_clk,
     input wire ID_reset,
     input wire [31:0] Cu_IR,    // Instruction from CU
+    input wire [1:0] stage_counter, //generate stage counter in CU_top
 
     // Outputs to CU_top
     output wire [5:0] Instruction_to_CU,

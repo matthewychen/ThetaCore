@@ -69,6 +69,12 @@ reg [4:0] shamt;
 reg [31:0] pc_increment;
 
 always@(posedge soc_clk) begin //TOP LEVEL ORGANIZATION of instruction
+    if(reset) begin
+        stage_counter <= 0;
+    end
+    else begin
+        stage_counter <= stage_counter + 1;
+    end
 end
 
 // ----------- WB MODULE ----------- //
@@ -107,7 +113,7 @@ CU_ID instruction_decoder(
     .soc_clk(soc_clk),
     .reset(reset),
     .decode_start(decode_start),    // From MMU or other control signal
-    .IDU_stall(IDU_stall),          // Connect to hazard detection
+    .stage_counter(stage_counter),
     .Cu_IR(Cu_IR),                  // Connect to instruction register
     
     // Connect all outputs to CU internal signals

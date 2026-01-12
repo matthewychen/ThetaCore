@@ -1,6 +1,7 @@
 module CU_EX(
     input soc_clk,
     input EX_reset,
+    input [1:0] stage_counter,
     input [31:0] rs1_data,
     input [31:0] rs2_data,
     input [31:0] imm_data,
@@ -12,7 +13,6 @@ module CU_EX(
     output condition_met_flag,
     output error_flag,
     output EX_accept,
-    output [1:0] stage_counter
 );
 
     reg dat_ready;

@@ -2,11 +2,11 @@
 
 +incdir+./Testbench
 
-../SRAM/SRAMcell.sv
-../SRAM/SRAMAddress.sv
-../SRAM/SRAM.sv
-../SRAM/SRAMbyte.sv
-../SRAM/SRAM_sim.sv
+//../SRAM/SRAMcell.sv
+//../SRAM/SRAMAddress.sv
+//../SRAM/SRAM.sv
+//../SRAM/SRAMbyte.sv
+//../SRAM/SRAM_sim.sv
 
 //../Modules/ALU/ALU_Addsub.sv
 //../Modules/CU/CU_EX.sv
@@ -20,11 +20,11 @@
 ../Components/Components/rippleadder.sv
 ../Components/Components/twoscomp.sv
 
-../Modules/MMU.sv
-./MMU_TB/tb_mmu.sv
+//../Modules/MMU.sv
+//./MMU_TB/tb_mmu.sv
 
 //./tb_top.sv
 //SRAM_TB/tb_sram.sv
-//./IDU_TB/tb_idu.sv
+./IDU_TB/tb_idu.sv
 //./ALU_TB/tb_alu.sv
-//../Modules/IDU/IDU_top.sv
+../Modules/IDU/IDU_top.sv

@@ -1,6 +1,7 @@
 module CU_MEM(
     //copied from IF
     input soc_clk,
+    input [1:0] stage_counter,
     
     input memfetch_start, //why is this here
     input [6:0] addr,
@@ -13,16 +14,11 @@ module CU_MEM(
 
     //reset and stall capture
 
-    always @(posedge soc_clk) begin //unconditional stage incrementation
-        MEM_stage_counter <= MEM_stage_counter + 1'b1;
-    end
-
-
     always @(posedge soc_clk or posedge MEM_reset_reg) begin
         if (MEM_reset_reg) begin
             // Reset state
         end else begin
-            case(MEM_stage_counter)
+            case(stage_counter)
                 2'b00: begin // Stage 0: Save incoming values
                 end
                 

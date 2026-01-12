@@ -1,3 +1,6 @@
+/// NO LONGER WORKS DUE TO MOVING STAGE COUNTER TO CU. need to generate new stimulus with using new instantiation
+
+
 `timescale 1ns/1ps
 
 module tb_idu;
@@ -19,6 +22,7 @@ module tb_idu;
     wire [4:0] shamt;
     wire [31:0] pc_increment;
     wire invalid_instruction;
+    reg [1:0] stage_counter;
 
     // Testbench variables
     integer tests_passed = 0;
@@ -31,6 +35,7 @@ module tb_idu;
         .soc_clk(soc_clk),
         .IDU_reset(IDU_reset),
         .instruction(instruction),
+        .stage_counter(stage_counter),
         .Instruction_to_CU(Instruction_to_CU),
         .imm(imm),
         .rd(rd),
@@ -103,6 +108,15 @@ module tb_idu;
     //----------------------------------------------------------------
     // Main Test Sequence
     //----------------------------------------------------------------
+    // Drive stage_counter synchronously; avoid zero-delay forever loops
+    always @(posedge soc_clk or posedge IDU_reset) begin
+        if (IDU_reset) begin
+            stage_counter <= 0;
+        end else begin
+            stage_counter <= stage_counter + 1;
+        end
+    end
+    
     initial begin
         // Initialize
         IDU_reset = 1;

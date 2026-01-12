@@ -3,6 +3,7 @@ module IDU_top(
     input soc_clk,
     input IDU_reset, //flushing
     input [31:0] instruction,
+    input [1:0] stage_counter,
 
     output reg [5:0] Instruction_to_CU   , //CU instruction select. refer to cu_code_ref.md to decode.
 
@@ -48,11 +49,9 @@ always@(posedge soc_clk or posedge IDU_reset) begin
         pc_increment <= 4;
         Instruction_to_CU <= 0;
         invalid_instruction <= 0;
-        IDU_result_counter <= 0;
     end
     else begin
-        IDU_result_counter <= IDU_result_counter + 1;
-        case(IDU_result_counter)
+        case(stage_counter)
             0: //recieve data
                 begin end
 
