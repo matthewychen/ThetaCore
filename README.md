@@ -2,7 +2,11 @@
 
 This is a project that aims to construct a single RISC-V ISA-based CPU and associated RAM using the R32I instruction set (and the R32F extension if time and interest permit).
 
-Key features will include conditional branching, ALUops, and 4kb of user-dictable memory. It does not currently support branching.
+Key features include conditional branching, jump-and-link, ALU operations, and byte / halfword / word memory access with correct sign extension.
+
+The core is a **multi-cycle** design: five states (IF, ID, EX, MEM, WB), one instruction in flight. Multi-cycle rather than single-cycle because the SRAM is synchronous — it registers its read, so an address presented this cycle returns data the next. Single-cycle datapaths (including the Berkeley RV32I diagram this is modelled on) assume asynchronous memory, which no real SRAM provides.
+
+Memory is currently 128 words (512 bytes). Reaching the 4kb target needs a wider address decode in the MMU and a larger array in `SRAM_sim`.
 
 #### To create testbench:
 
