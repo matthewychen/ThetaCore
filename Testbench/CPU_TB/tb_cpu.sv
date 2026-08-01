@@ -47,6 +47,47 @@ module tb_cpu;
     always @(posedge soc_clk)
         if (!reset && dbg_state == 3'd4) retired = retired + 1;
 
+    //--------------------------------------------------------------------------
+    // Per-instruction register trace.  Enable with +TRACE:
+    //     vvp testsim +TRACE
+    // Off by default so the pass/fail output stays readable.
+    //--------------------------------------------------------------------------
+    reg [31:0] prev_regs [0:31];
+    reg [31:0] tr_pc, tr_ir;
+    reg        tr_on, tr_hit;
+    integer    ti;
+
+    initial begin
+        tr_on = $test$plusargs("TRACE");
+        for (ti = 0; ti < 32; ti = ti + 1) prev_regs[ti] = 32'b0;
+    end
+
+    always @(posedge soc_clk) begin
+        if (reset) begin
+            for (ti = 0; ti < 32; ti = ti + 1) prev_regs[ti] = 32'b0;
+        end
+        else if (tr_on && dbg_state == 3'd4) begin
+            // Read PC and IR before the edge settles: during WB they still
+            // name the retiring instruction, not the next one.
+            tr_pc = dbg_PC;
+            tr_ir = dbg_IR;
+            #1;                      // let the register write land
+            tr_hit = 1'b0;
+            for (ti = 0; ti < 32; ti = ti + 1) begin
+                if (DUT.registers.regs[ti] !== prev_regs[ti]) begin
+                    $display("TRACE pc=%08x inst=%08x  x%0d: %08x -> %08x",
+                             tr_pc, tr_ir, ti,
+                             prev_regs[ti], DUT.registers.regs[ti]);
+                    prev_regs[ti] = DUT.registers.regs[ti];
+                    tr_hit = 1'b1;
+                end
+            end
+            if (!tr_hit)
+                $display("TRACE pc=%08x inst=%08x  (no register write)",
+                         tr_pc, tr_ir);
+        end
+    end
+
     task run_to_halt;
     begin
         cycles = 0; retired = 0;

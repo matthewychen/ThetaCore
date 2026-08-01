@@ -37,6 +37,50 @@ module tb_run;
     always @(posedge soc_clk)
         if (!reset && DUT.core.state == 3'd4) retired = retired + 1;
 
+    //--------------------------------------------------------------------------
+    // Per-instruction register trace.  Enable with +TRACE:
+    //     vvp runsim +PROG=../programs/arith.hex +TRACE
+    //
+    // Off by default because difftest.py parses this testbench's stdout, and
+    // 360 runs of trace output is a lot of noise for no benefit. Lines are
+    // prefixed TRACE so they can never collide with the state dump either way.
+    //--------------------------------------------------------------------------
+    reg [31:0] prev_regs [0:31];
+    reg [31:0] tr_pc, tr_ir;
+    reg        tr_on, tr_hit;
+    integer    ti;
+
+    initial begin
+        tr_on = $test$plusargs("TRACE");
+        for (ti = 0; ti < 32; ti = ti + 1) prev_regs[ti] = 32'b0;
+    end
+
+    always @(posedge soc_clk) begin
+        if (reset) begin
+            for (ti = 0; ti < 32; ti = ti + 1) prev_regs[ti] = 32'b0;
+        end
+        else if (tr_on && DUT.core.state == 3'd4) begin
+            // Read PC and IR before the edge settles: during WB they still
+            // name the retiring instruction, not the next one.
+            tr_pc = DUT.core.PC;
+            tr_ir = DUT.core.Cu_IR;
+            #1;                      // let the register write land
+            tr_hit = 1'b0;
+            for (ti = 0; ti < 32; ti = ti + 1) begin
+                if (DUT.core.registers.regs[ti] !== prev_regs[ti]) begin
+                    $display("TRACE pc=%08x inst=%08x  x%0d: %08x -> %08x",
+                             tr_pc, tr_ir, ti,
+                             prev_regs[ti], DUT.core.registers.regs[ti]);
+                    prev_regs[ti] = DUT.core.registers.regs[ti];
+                    tr_hit = 1'b1;
+                end
+            end
+            if (!tr_hit)
+                $display("TRACE pc=%08x inst=%08x  (no register write)",
+                         tr_pc, tr_ir);
+        end
+    end
+
     initial begin
         if (!$value$plusargs("MAXCYC=%d", maxcyc)) maxcyc = 20000;
         if ($test$plusargs("WAVE")) begin

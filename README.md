@@ -18,6 +18,19 @@ To view waveform:
 gtkwave.exe wave.vcd (or your dumpfile name, can be changed in tb_top)
 ```
 
+#### To trace execution:
+
+add +TRACE to print one line per instruction — the PC, the instruction word, and which register changed:
+
+```
+vvp testsim +TRACE
+```
+
+```
+TRACE pc=00000008 inst=002081b3  x3: 00000000 -> 0000000c
+TRACE pc=00000010 inst=04302023  (no register write)
+```
+
 #### To assemble a program:
 
 write RV32I assembly (see /programs for examples), then run tools/asm.py to produce a hex image. needs python 3, no RISC-V toolchain:
