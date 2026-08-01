@@ -25,7 +25,9 @@ module CU_ID(
         .rd(rd),
         .rs1(rs1),
         .rs2(rs2),
-        .shamt(shamt)
+        .shamt(shamt),
+        .pc_increment(pc_increment),
+        .invalid_instruction(invalid_instruction)
     );
 
 endmodule

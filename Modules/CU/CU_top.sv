@@ -1,6 +1,7 @@
 module CU_top(
     //templated
     input soc_clk,
+    input reset,
     input poweron
 
     //instantiation of ALU
@@ -57,16 +58,20 @@ reg [31:0][31:0] CU_reg;
 // reg_30: temp reg 5                                                  | t5
 // reg_31: temp reg 6                                                  | t6
 
-//from IDU
-reg [5:0] Instruction_to_CU;
-reg [4:0] Instruction_to_ALU; //needs to be outputted to ALU 1 clock cycle before dat_ready
+//from IDU. these are driven by CU_ID, so they must be nets, not variables.
+wire [5:0] Instruction_to_CU;
 //databusses
-reg [31:0] imm;
-reg [4:0] rd; //CU register sel
-reg [4:0] rs1;
-reg [4:0] rs2;
-reg [4:0] shamt;
-reg [31:0] pc_increment;
+wire [31:0] imm;
+wire [4:0] rd; //CU register sel
+wire [4:0] rs1;
+wire [4:0] rs2;
+wire [4:0] shamt;
+wire [31:0] pc_increment;
+wire invalid_instruction;
+
+//to ALU. 6 bits wide, not 5: CU opcodes run to 40, so a 5 bit bus
+//silently truncated AND(36) down to 4, which is BEQ.
+reg [5:0] Instruction_to_ALU;
 
 always@(posedge soc_clk) begin //TOP LEVEL ORGANIZATION of instruction
 end
@@ -98,29 +103,26 @@ end
 
 
 //ERROR CATCH BLOCK
-always@(posedge ALU_err or posedge invalid_instruction) begin //include other errors as they come
+//ALU_err rejoins this sensitivity list in B7, once the ALU is instantiated here.
+always@(posedge invalid_instruction) begin //include other errors as they come
+    $display("[CU] invalid instruction: PC=%0d IR=%08x", Cu_PC, Cu_IR);
     $finish;
 end
 
 // Inside CU_top module
 CU_ID instruction_decoder(
     .soc_clk(soc_clk),
-    .reset(reset),
-    .decode_start(decode_start),    // From MMU or other control signal
-    .IDU_stall(IDU_stall),          // Connect to hazard detection
+    .ID_reset(reset),
     .Cu_IR(Cu_IR),                  // Connect to instruction register
-    
+
     // Connect all outputs to CU internal signals
-    .IDU_ready(IDU_ready),
     .Instruction_to_CU(Instruction_to_CU),
-    .Instruction_to_ALU(Instruction_to_ALU),
     .imm(imm),
     .rd(rd),
     .rs1(rs1),
     .rs2(rs2),
     .shamt(shamt),
     .pc_increment(pc_increment),
-    .pipeline_override(pipeline_override),
     .invalid_instruction(invalid_instruction)
 );
 
