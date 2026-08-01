@@ -93,6 +93,25 @@
                             `CU_ORI: Instruction_to_ALU <= `ALUOP_OR; //ORI or
                             `CU_AND: Instruction_to_ALU <= `ALUOP_AND; //AND and
                             `CU_ANDI: Instruction_to_ALU <= `ALUOP_AND; //ANDI and
+
+                            //SLTIU was absent from this table entirely and fell
+                            //through to NOP, so sltiu silently did nothing.
+                            `CU_SLTIU: Instruction_to_ALU <= `ALUOP_SLTU; //SLTIU set less than unsigned
+
+                            //Effective address calculation, rs1 + imm. Without
+                            //these every load and store fell through to NOP, so
+                            //the ALU could not produce a memory address at all.
+                            `CU_LB, `CU_LH, `CU_LW,
+                            `CU_LBU, `CU_LHU: Instruction_to_ALU <= `ALUOP_ADD;
+                            `CU_SB, `CU_SH, `CU_SW: Instruction_to_ALU <= `ALUOP_ADD;
+
+                            //LUI   rd <- imm        (operand a mux supplies zero)
+                            //AUIPC rd <- PC + imm   (operand a mux supplies PC)
+                            //JALR  target <- rs1 + imm
+                            //JAL needs no ALU op, its offset rides pc_increment.
+                            `CU_LUI, `CU_AUIPC,
+                            `CU_JALR: Instruction_to_ALU <= `ALUOP_ADD;
+
                             default: Instruction_to_ALU <= `ALUOP_NOP; //no operation
                             endcase
                             ALU_result_counter <= 2'b10;
