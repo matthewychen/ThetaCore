@@ -151,4 +151,10 @@
 `define MEMRW_READ    1'b0
 `define MEMRW_WRITE   1'b1
 
+// memory access width. The CU knows the opcode, so it supplies width and
+// signedness; the MMU turns those into byte enables and does the extension.
+`define MEMW_BYTE     2'd0
+`define MEMW_HALF     2'd1
+`define MEMW_WORD     2'd2
+
 `endif

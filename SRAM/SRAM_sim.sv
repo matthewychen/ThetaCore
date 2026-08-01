@@ -30,7 +30,7 @@ module SRAM_sim(
             end
             else if (write_enable) begin
                 if(byte_sel[0]==1) begin
-                    memory[addr_sel][7:0] <= datain[8:0];
+                    memory[addr_sel][7:0] <= datain[7:0];
                 end
 
                 if(byte_sel[1]==1) begin
