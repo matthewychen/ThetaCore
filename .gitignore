@@ -4,3 +4,9 @@ _Deprecated/
 *.vcd
 *.vvp
 testsim
+runsim
+
+# difftest scratch and failure captures
+failures/
+programs/_difftest.hex
+__pycache__/
