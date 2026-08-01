@@ -1,12 +1,12 @@
-00500093  // 0000: addi x1 x0 5
-00500113  // 0004: addi x2 x0 5
-00209663  // 0008: bne x1 x2 skip_a
-00100193  // 000c: addi x3 x0 1
-00208463  // 0010: beq x1 x2 skip_b
-06300213  // 0014: addi x4 x0 99
-008002ef  // 0018: jal x5 done
-04d00313  // 001c: addi x6 x0 77
-00000073  // 0020: ecall 
+00500093  // 0000  addi x1, x0, 5         | I op=13 imm=5     rs1=x0  f3=0 rd=x1 
+00500113  // 0004  addi x2, x0, 5         | I op=13 imm=5     rs1=x0  f3=0 rd=x2 
+00209663  // 0008  bne x1, x2, skip_a     | B op=63 imm=12    rs2=x2  rs1=x1  f3=1
+00100193  // 000c  addi x3, x0, 1         | I op=13 imm=1     rs1=x0  f3=0 rd=x3 
+00208463  // 0010  beq x1, x2, skip_b     | B op=63 imm=8     rs2=x2  rs1=x1  f3=0
+06300213  // 0014  addi x4, x0, 99        | I op=13 imm=99    rs1=x0  f3=0 rd=x4 
+008002ef  // 0018  jal x5, done           | J op=6f imm=8     rd=x5 
+04d00313  // 001c  addi x6, x0, 77        | I op=13 imm=77    rs1=x0  f3=0 rd=x6 
+00000073  // 0020  ecall                  | I op=73 ecall
 00000000
 00000000
 00000000

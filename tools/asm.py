@@ -274,6 +274,47 @@ def encode(mnem, ops, labels, pc, n):
     raise AsmError("line %d: unknown instruction %r" % (n, mnem))
 
 
+def sx(v, bits):
+    m = 1 << (bits - 1)
+    return (v & (m - 1)) - (v & m)
+
+
+def fields(w):
+    """Field-by-field breakdown of an encoded word, for the listing comment."""
+    op  = w & 0x7F
+    rd  = (w >> 7) & 0x1F
+    f3  = (w >> 12) & 7
+    rs1 = (w >> 15) & 0x1F
+    rs2 = (w >> 20) & 0x1F
+    f7  = (w >> 25) & 0x7F
+
+    if op == OP_R:
+        return "R op=%02x f7=%02x rs2=x%-2d rs1=x%-2d f3=%d rd=x%-2d" % (
+            op, f7, rs2, rs1, f3, rd)
+    if op in (OP_I, OP_LD, OP_JALR):
+        return "I op=%02x imm=%-5d rs1=x%-2d f3=%d rd=x%-2d" % (
+            op, sx(w >> 20, 12), rs1, f3, rd)
+    if op == OP_ST:
+        return "S op=%02x imm=%-5d rs2=x%-2d rs1=x%-2d f3=%d" % (
+            op, sx(((w >> 25) << 5) | ((w >> 7) & 0x1F), 12), rs2, rs1, f3)
+    if op == OP_BR:
+        imm = sx((((w >> 31) & 1) << 12) | (((w >> 7) & 1) << 11) |
+                 (((w >> 25) & 0x3F) << 5) | (((w >> 8) & 0xF) << 1), 13)
+        return "B op=%02x imm=%-5d rs2=x%-2d rs1=x%-2d f3=%d" % (
+            op, imm, rs2, rs1, f3)
+    if op in (OP_LUI, OP_AUIPC):
+        return "U op=%02x imm=0x%05x rd=x%-2d" % (op, (w >> 12) & 0xFFFFF, rd)
+    if op == OP_JAL:
+        imm = sx((((w >> 31) & 1) << 20) | (((w >> 12) & 0xFF) << 12) |
+                 (((w >> 20) & 1) << 11) | (((w >> 21) & 0x3FF) << 1), 21)
+        return "J op=%02x imm=%-5d rd=x%-2d" % (op, imm, rd)
+    if op == OP_SYS:
+        return "I op=%02x %s" % (op, "ebreak" if (w >> 20) & 1 else "ecall")
+    if op == OP_FENCE:
+        return "I op=%02x fence" % op
+    return "? op=%02x" % op
+
+
 def main():
     ap = argparse.ArgumentParser(description="RV32I assembler for ThetaCore")
     ap.add_argument("source")
@@ -299,7 +340,8 @@ def main():
         if args.plain:
             lines.append("%08x" % w)
         else:
-            lines.append("%08x  // %04x: %s %s" % (w, pc, mnem, ' '.join(ops)))
+            src = "%s %s" % (mnem, ', '.join(ops)) if ops else mnem
+            lines.append("%08x  // %04x  %-22s | %s" % (w, pc, src, fields(w)))
 
     n_instr = len(lines)
     while len(lines) < args.pad:

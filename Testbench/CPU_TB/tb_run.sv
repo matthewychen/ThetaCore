@@ -12,6 +12,8 @@
 
 module tb_run;
 
+`include "disasm.vh"
+
     reg         soc_clk, reset;
     wire        halted, retire_pulse;
     wire [31:0] pc_out;
@@ -68,16 +70,16 @@ module tb_run;
             tr_hit = 1'b0;
             for (ti = 0; ti < 32; ti = ti + 1) begin
                 if (DUT.core.registers.regs[ti] !== prev_regs[ti]) begin
-                    $display("TRACE pc=%08x inst=%08x  x%0d: %08x -> %08x",
-                             tr_pc, tr_ir, ti,
+                    $display("TRACE %04x  %08x  %-22s  x%0d: %08x -> %08x",
+                             tr_pc, tr_ir, disasm(tr_ir), ti,
                              prev_regs[ti], DUT.core.registers.regs[ti]);
                     prev_regs[ti] = DUT.core.registers.regs[ti];
                     tr_hit = 1'b1;
                 end
             end
             if (!tr_hit)
-                $display("TRACE pc=%08x inst=%08x  (no register write)",
-                         tr_pc, tr_ir);
+                $display("TRACE %04x  %08x  %-22s  -",
+                         tr_pc, tr_ir, disasm(tr_ir));
         end
     end
 

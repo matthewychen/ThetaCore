@@ -20,16 +20,18 @@ gtkwave.exe wave.vcd (or your dumpfile name, can be changed in tb_top)
 
 #### To trace execution:
 
-add +TRACE to print one line per instruction — the PC, the instruction word, and which register changed:
+add +TRACE to print one line per instruction — the PC, the instruction word, the disassembly, and which register changed:
 
 ```
 vvp testsim +TRACE
 ```
 
 ```
-TRACE pc=00000008 inst=002081b3  x3: 00000000 -> 0000000c
-TRACE pc=00000010 inst=04302023  (no register write)
+TRACE 00000008  002081b3  add    x3, x1, x2       x3: 00000000 -> 0000000c
+TRACE 00000010  04302023  sw     x3, 64(x0)       -
 ```
+
+the disassembler decodes from the instruction word, so it works on any image, not just ones this assembler produced.
 
 #### To assemble a program:
 
