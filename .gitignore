@@ -1,1 +1,6 @@
 _Deprecated/
+
+# simulation artifacts
+*.vcd
+*.vvp
+testsim
