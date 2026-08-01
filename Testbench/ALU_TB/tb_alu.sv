@@ -172,28 +172,37 @@ task testsequence;
 begin
     // --------------------------------------------------
     // 1. Wait until ALU explicitly accepts a new op
+    //
+    // Every wait settles with #1 before sampling. Reading a signal in the
+    // active region immediately after @(posedge) returns its PRE-edge value,
+    // because non-blocking updates have not been applied yet -- so the
+    // handshake would be observed one cycle stale. The old four-phase ALU had
+    // enough slack to hide this; a tighter one does not.
     // --------------------------------------------------
-    while (!EX_accept)
-        @(posedge soc_clk);
+    #1;
+    while (!EX_accept) begin
+        @(posedge soc_clk); #1;
+    end
 
     // --------------------------------------------------
     // 2. Drive inputs while accept is HIGH
     //    (must be stable before capture edge)
     // --------------------------------------------------
-    ALU_dat1 <= in1;
-    ALU_dat2 <= in2;
-    Instruction_from_CU <= instr;
+    ALU_dat1 = in1;
+    ALU_dat2 = in2;
+    Instruction_from_CU = instr;
 
     // --------------------------------------------------
     // 3. Capture happens on THIS posedge
     // --------------------------------------------------
-    @(posedge soc_clk);
+    @(posedge soc_clk); #1;
 
     // --------------------------------------------------
     // 4. Wait for result valid
     // --------------------------------------------------
-    while (!ALU_ready)
-        @(posedge soc_clk);
+    while (!ALU_ready) begin
+        @(posedge soc_clk); #1;
+    end
 
     // --------------------------------------------------
     // 5. Check outputs

@@ -23,8 +23,29 @@ module IDU_top(
     output reg invalid_instruction
 );
 
-reg [1:0] IDU_result_counter;
-reg [3:0] decryptedOPtype;
+// B10: the broad-type classification is a pure function of instruction[6:0],
+// so it is combinational. It used to occupy a clock phase of its own, with the
+// specific decode in the next phase and two entirely empty phases around them
+// -- four cycles to do nothing that needed more than one.
+reg [3:0] optype;
+
+always @(*) begin
+    case (instruction[6:0])
+        7'b0110111: optype = `OPT_LUI;
+        7'b0010111: optype = `OPT_AUIPC;
+        7'b1101111: optype = `OPT_JAL;
+        7'b1100111: optype = `OPT_JALR;
+        7'b1100011: optype = `OPT_B;
+        7'b0100011: optype = `OPT_S;
+        7'b0000011: optype = `OPT_LOAD;
+        7'b0010011: optype = `OPT_ICALC;
+        7'b0110011: optype = `OPT_R;
+        7'b0001111: optype = `OPT_FENCE;
+        7'b1110011: optype = `OPT_SYSTEM;
+        default:    optype = `OPT_INVALID;
+    endcase
+end
+
 //0  -> LUI U
 //1  -> AUIPC U
 //2  ->  JAL J
@@ -41,7 +62,6 @@ reg [3:0] decryptedOPtype;
 
 always@(posedge soc_clk or posedge IDU_reset) begin
     if(IDU_reset) begin
-        decryptedOPtype <= `OPT_INITIAL;
         imm <= 32'b0;
         rd <= 5'b0;
         rs1 <= 5'b0;
@@ -50,33 +70,9 @@ always@(posedge soc_clk or posedge IDU_reset) begin
         pc_increment <= 4;
         Instruction_to_CU <= `CU_LUI;
         invalid_instruction <= 0;
-        IDU_result_counter <= 0;
     end
     else begin
-        IDU_result_counter <= IDU_result_counter + 1;
-        case(IDU_result_counter)
-            0: //recieve data
-                begin end
-
-            1: //decode broad type
-                case(instruction[6:0]) //optype classification
-                    7'b0110111: decryptedOPtype <= `OPT_LUI;
-                    7'b0010111: decryptedOPtype <= `OPT_AUIPC;
-                    7'b1101111: decryptedOPtype <= `OPT_JAL;
-                    7'b1100111: decryptedOPtype <= `OPT_JALR;
-                    7'b1100011: decryptedOPtype <= `OPT_B;
-                    7'b0100011: decryptedOPtype <= `OPT_S;
-                    7'b0000011: decryptedOPtype <= `OPT_LOAD;
-                    7'b0010011: decryptedOPtype <= `OPT_ICALC;
-                    7'b0110011: decryptedOPtype <= `OPT_R;
-                    7'b0001111: decryptedOPtype <= `OPT_FENCE; //fence
-                    7'b1110011: decryptedOPtype <= `OPT_SYSTEM; //ecall/ebreak
-                    default: decryptedOPtype <= `OPT_INVALID; //error case
-                endcase
-
-
-            2: //decode specific type and write to output
-                case(decryptedOPtype)
+                case(optype)
                     `OPT_LUI: begin //LUI U
                         imm <= {instruction[31:12], {12{1'b0}}};
                         rd <= instruction[11:7];
@@ -278,7 +274,6 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         case(instruction[20])
                             1'b0: begin
                                 Instruction_to_CU <= `CU_ECALL; //ecall
-                                decryptedOPtype <= `OPT_INITIAL;
                                 imm <= 32'b0;
                                 rd <= 5'b0;
                                 rs1 <= 5'b0;
@@ -291,10 +286,6 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         endcase
                     end
 
-                    `OPT_INITIAL: begin //post-reset, nothing decoded yet
-                        invalid_instruction <= 0;
-                    end
-
                     //Was an unconditional $finish. A zeroed instruction word
                     //classifies as OPT_INVALID and landed here, terminating the
                     //whole simulation with no message -- which reads as "the CPU
@@ -303,10 +294,6 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         invalid_instruction <= 1;
                     end
                 endcase
-
-            3: //no operation
-                begin end
-        endcase
     end
 end
 

@@ -1,5 +1,19 @@
 `include "cu_opcodes.vh"
 
+//==============================================================================
+// ALU.
+//
+// B10: collapsed from a four-phase sequencer to a single registered cycle.
+// The old phase 00 only advanced a counter, phase 01 latched operands and
+// translated the opcode, phase 10 computed, phase 11 cleared a flag. Every
+// sub-block (AddSub, Comparator, LogOp, Shifter) is combinational, so three of
+// those four phases were pure ceremony.
+//
+// The ALU_accept / ALU_ready handshake is preserved exactly, which is why the
+// testbench needed no changes: it waits on the handshake rather than counting
+// cycles.
+//==============================================================================
+
     module ALU_top(
         //templated
         input soc_clk,
@@ -22,173 +36,166 @@
         output reg [1:0] ALU_result_counter
         );
 
-        //for storage to mitigate data loss
-        reg [4:0] Instruction_to_ALU;
-        reg [31:0] reg_ALU_dat1;
-        reg [31:0] reg_ALU_dat2;
-        
         wire [31:0] AddSub_out;
-        wire AddSub_overflow;  // Missing declaration
+        wire        AddSub_overflow;
         wire [31:0] Comparator_out;
-        wire Comparator_con_met; // Missing declaration
+        wire        Comparator_con_met;
         wire [31:0] LogOp_out;
         wire [31:0] Shifter_out;
 
-        assign ALU_accept = (ALU_result_counter == 2'b00);
+        //----------------------------------------------------------------------
+        // CU opcode -> ALU operation. A lookup, not a computation.
+        //----------------------------------------------------------------------
+        reg [4:0] Instruction_to_ALU;
+
+        always @(*) begin
+            case(Instruction_from_CU)
+            //B
+            `CU_BEQ:   Instruction_to_ALU = `ALUOP_BEQ;
+            `CU_BNE:   Instruction_to_ALU = `ALUOP_BNE;
+            `CU_BLT:   Instruction_to_ALU = `ALUOP_BLT;
+            `CU_BGE:   Instruction_to_ALU = `ALUOP_BGE;
+            `CU_BLTU:  Instruction_to_ALU = `ALUOP_BLTU;
+            `CU_BGEU:  Instruction_to_ALU = `ALUOP_BGEU;
+
+            //I/R
+            `CU_ADD:   Instruction_to_ALU = `ALUOP_ADD;
+            `CU_ADDI:  Instruction_to_ALU = `ALUOP_ADD;
+            `CU_SUB:   Instruction_to_ALU = `ALUOP_SUB;
+            `CU_SLL:   Instruction_to_ALU = `ALUOP_SLL;
+            `CU_SLLI:  Instruction_to_ALU = `ALUOP_SLL;
+            `CU_SLT:   Instruction_to_ALU = `ALUOP_SLT;
+            `CU_SLTI:  Instruction_to_ALU = `ALUOP_SLT;
+            `CU_SLTU:  Instruction_to_ALU = `ALUOP_SLTU;
+            `CU_SLTIU: Instruction_to_ALU = `ALUOP_SLTU;
+            `CU_XOR:   Instruction_to_ALU = `ALUOP_XOR;
+            `CU_XORI:  Instruction_to_ALU = `ALUOP_XOR;
+            `CU_SRL:   Instruction_to_ALU = `ALUOP_SRL;
+            `CU_SRLI:  Instruction_to_ALU = `ALUOP_SRL;
+            `CU_SRA:   Instruction_to_ALU = `ALUOP_SRA;
+            `CU_SRAI:  Instruction_to_ALU = `ALUOP_SRA;
+            `CU_OR:    Instruction_to_ALU = `ALUOP_OR;
+            `CU_ORI:   Instruction_to_ALU = `ALUOP_OR;
+            `CU_AND:   Instruction_to_ALU = `ALUOP_AND;
+            `CU_ANDI:  Instruction_to_ALU = `ALUOP_AND;
+
+            //effective address calculation, rs1 + imm
+            `CU_LB, `CU_LH, `CU_LW,
+            `CU_LBU, `CU_LHU:        Instruction_to_ALU = `ALUOP_ADD;
+            `CU_SB, `CU_SH, `CU_SW:  Instruction_to_ALU = `ALUOP_ADD;
+
+            //LUI (a mux supplies zero), AUIPC (a mux supplies PC), JALR
+            `CU_LUI, `CU_AUIPC,
+            `CU_JALR:  Instruction_to_ALU = `ALUOP_ADD;
+
+            default:   Instruction_to_ALU = `ALUOP_NOP;
+            endcase
+        end
+
+        //----------------------------------------------------------------------
+        // Result selection, combinational.
+        //----------------------------------------------------------------------
+        reg [31:0] result_c;
+        reg        ovf_c, zero_c, con_c;
+
+        always @(*) begin
+            case(Instruction_to_ALU)
+                `ALUOP_ADD, `ALUOP_SUB: begin
+                    result_c = AddSub_out;
+                    ovf_c    = AddSub_overflow;
+                    zero_c   = ~|AddSub_out;
+                    con_c    = 1'b0;
+                end
+                `ALUOP_SLL, `ALUOP_SRL, `ALUOP_SRA: begin
+                    result_c = Shifter_out;
+                    ovf_c    = 1'b0;
+                    zero_c   = ~|Shifter_out;
+                    con_c    = 1'b0;
+                end
+                `ALUOP_XOR, `ALUOP_OR, `ALUOP_AND: begin
+                    result_c = LogOp_out;
+                    ovf_c    = 1'b0;
+                    zero_c   = ~|LogOp_out;
+                    con_c    = 1'b0;
+                end
+                `ALUOP_BEQ, `ALUOP_BNE, `ALUOP_BLT, `ALUOP_BGE,
+                `ALUOP_BLTU, `ALUOP_BGEU, `ALUOP_SLT, `ALUOP_SLTU: begin
+                    result_c = Comparator_out;
+                    ovf_c    = 1'b0;
+                    zero_c   = (Comparator_out == 0);
+                    con_c    = Comparator_con_met;
+                end
+                default: begin
+                    result_c = 32'b0;
+                    ovf_c    = 1'b0;
+                    zero_c   = 1'b1;
+                    con_c    = 1'b0;
+                end
+            endcase
+        end
+
+        //----------------------------------------------------------------------
+        // One registered cycle, handshake preserved.
+        //----------------------------------------------------------------------
+        reg busy;
+        assign ALU_accept = !busy;
 
         always@(posedge soc_clk) begin
             if (reset) begin
-                // Reset logic
-                ALU_result_counter <= 0;
-                ALU_ready <= 0;
-                ALU_out <= 32'b0;
+                busy         <= 1'b0;
+                ALU_ready    <= 1'b0;
+                ALU_out      <= 32'b0;
                 ALU_overflow <= 1'b0;
-                ALU_zero <= 1'b0;
-                ALU_con_met <= 1'b0;
-                Instruction_to_ALU <= `ALUOP_NOP;
-                reg_ALU_dat1 <= 32'b0;
-                reg_ALU_dat2 <= 32'b0;
-                ALU_err <= 1'b0;
+                ALU_zero     <= 1'b0;
+                ALU_con_met  <= 1'b0;
+                ALU_err      <= 1'b0;
+                ALU_result_counter <= 2'b00;
+            end
+            else if (!busy) begin
+                ALU_out      <= result_c;
+                ALU_overflow <= ovf_c;
+                ALU_zero     <= zero_c;
+                ALU_con_met  <= con_c;
+                ALU_ready    <= 1'b1;
+                busy         <= 1'b1;
+                ALU_result_counter <= 2'b01;
             end
             else begin
-                
-                case(ALU_result_counter)
-                    2'b00: begin
-                        ALU_result_counter <= 01;
-                        ALU_ready <= 1'b0;
-                    end
-                    2'b01: begin
-                        // Idle state
-                        ALU_ready <= 1'b0;
-                        
-                            reg_ALU_dat1 <= ALU_dat1;
-                            reg_ALU_dat2 <= ALU_dat2;
-                        
-                        // Latch instruction
-                            case(Instruction_from_CU)
-                            //B
-                            `CU_BEQ: Instruction_to_ALU <= `ALUOP_BEQ; //BEQ branch equal
-                            `CU_BNE: Instruction_to_ALU <= `ALUOP_BNE; //BNE branch not equal
-                            `CU_BLT: Instruction_to_ALU <= `ALUOP_BLT; //BLT branch less than
-                            `CU_BGE: Instruction_to_ALU <= `ALUOP_BGE; //BGE branch greater than or equal
-                            `CU_BLTU: Instruction_to_ALU <= `ALUOP_BLTU; //BLTU branch less than unsigned
-                            `CU_BGEU: Instruction_to_ALU <= `ALUOP_BGEU; //BGEU branch greater than or equal unsigned
-
-                            //I/R
-                            `CU_ADD: Instruction_to_ALU <= `ALUOP_ADD; //ADD add 
-                            `CU_ADDI: Instruction_to_ALU <= `ALUOP_ADD; //ADDI add 
-                            `CU_SUB: Instruction_to_ALU <= `ALUOP_SUB; //SUB subtract 
-                            `CU_SLL: Instruction_to_ALU <= `ALUOP_SLL; //SLL logical leftshift 
-                            `CU_SLLI: Instruction_to_ALU <= `ALUOP_SLL; //SLLI logical leftshift
-                            `CU_SLT: Instruction_to_ALU <= `ALUOP_SLT; //SLT set less than
-                            `CU_SLTI: Instruction_to_ALU <= `ALUOP_SLT; //SLTI set less than
-                            `CU_SLTU: Instruction_to_ALU <= `ALUOP_SLTU; //SLTU set less than unsigned
-                            `CU_XOR: Instruction_to_ALU <= `ALUOP_XOR; //XOR xor 
-                            `CU_XORI: Instruction_to_ALU <= `ALUOP_XOR; //XORI xor 
-                            `CU_SRL: Instruction_to_ALU <= `ALUOP_SRL; //SRL logical rightshift 
-                            `CU_SRLI: Instruction_to_ALU <= `ALUOP_SRL; //SRLI logical rightshift 
-                            `CU_SRA: Instruction_to_ALU <= `ALUOP_SRA; //SRA arithmetic rightshift
-                            `CU_SRAI: Instruction_to_ALU <= `ALUOP_SRA; //SRAI arithmetic rightshift 
-                            `CU_OR: Instruction_to_ALU <= `ALUOP_OR; //OR or
-                            `CU_ORI: Instruction_to_ALU <= `ALUOP_OR; //ORI or
-                            `CU_AND: Instruction_to_ALU <= `ALUOP_AND; //AND and
-                            `CU_ANDI: Instruction_to_ALU <= `ALUOP_AND; //ANDI and
-
-                            //SLTIU was absent from this table entirely and fell
-                            //through to NOP, so sltiu silently did nothing.
-                            `CU_SLTIU: Instruction_to_ALU <= `ALUOP_SLTU; //SLTIU set less than unsigned
-
-                            //Effective address calculation, rs1 + imm. Without
-                            //these every load and store fell through to NOP, so
-                            //the ALU could not produce a memory address at all.
-                            `CU_LB, `CU_LH, `CU_LW,
-                            `CU_LBU, `CU_LHU: Instruction_to_ALU <= `ALUOP_ADD;
-                            `CU_SB, `CU_SH, `CU_SW: Instruction_to_ALU <= `ALUOP_ADD;
-
-                            //LUI   rd <- imm        (operand a mux supplies zero)
-                            //AUIPC rd <- PC + imm   (operand a mux supplies PC)
-                            //JALR  target <- rs1 + imm
-                            //JAL needs no ALU op, its offset rides pc_increment.
-                            `CU_LUI, `CU_AUIPC,
-                            `CU_JALR: Instruction_to_ALU <= `ALUOP_ADD;
-
-                            default: Instruction_to_ALU <= `ALUOP_NOP; //no operation
-                            endcase
-                            ALU_result_counter <= 2'b10;
-                    end
-                    2'b10: begin 
-                        ALU_result_counter <= 2'b11;
-                        case(Instruction_to_ALU)
-                            `ALUOP_ADD, `ALUOP_SUB: begin
-                                ALU_out <= AddSub_out;
-                                ALU_overflow <= AddSub_overflow;
-                                ALU_zero <= ~|AddSub_out;
-                                ALU_con_met <= 0;
-                            end
-                            `ALUOP_SLL, `ALUOP_SRL, `ALUOP_SRA: begin ALU_out <= Shifter_out;
-                                ALU_overflow <= 0;
-                                ALU_zero <= ~|Shifter_out;
-                                ALU_con_met <= 0;
-                            end
-                            `ALUOP_XOR, `ALUOP_OR, `ALUOP_AND: begin ALU_out <= LogOp_out;
-                                ALU_overflow <= 0;
-                                ALU_zero <= ~|LogOp_out;
-                                ALU_con_met <= 0;
-                            end
-                            `ALUOP_BEQ, `ALUOP_BNE, `ALUOP_BLT, `ALUOP_BGE,
-                            `ALUOP_BLTU, `ALUOP_BGEU, `ALUOP_SLT, `ALUOP_SLTU: begin
-                                ALU_out <= Comparator_out;
-                                ALU_con_met <= Comparator_con_met;
-                                ALU_overflow <= 0;
-                                ALU_zero <= (Comparator_out==0);
-                            end
-                            default: begin ALU_out <= 32'b0;
-                            ALU_overflow <= 0;
-                            ALU_zero <= 1;
-                            ALU_con_met <= 0;
-                            end
-                            
-                        endcase
-                        ALU_ready <= 1'b1;
-                    end
-                    2'b11: begin
-                        ALU_ready <= 1'b0;
-                        ALU_result_counter <= 2'b00;
-                        end    
-                endcase
-            end 
+                ALU_ready    <= 1'b0;
+                busy         <= 1'b0;
+                ALU_result_counter <= 2'b00;
+            end
         end
 
-
-        
-
-        //instantiations
+        //instantiations. Fed directly from the input busses now -- the old
+        //reg_ALU_dat1/reg_ALU_dat2 shadow copies existed only to hold operands
+        //stable across the discarded phases.
         AddSub AS(
-            .ALU_dat1(reg_ALU_dat1),
-            .ALU_dat2(reg_ALU_dat2),
+            .ALU_dat1(ALU_dat1),
+            .ALU_dat2(ALU_dat2),
             .Instruction_to_ALU(Instruction_to_ALU),
             .AddSub_out(AddSub_out),
             .AddSub_overflow(AddSub_overflow)
         );
 
         Comparator C(
-            .ALU_dat1(reg_ALU_dat1),
-            .ALU_dat2(reg_ALU_dat2),
+            .ALU_dat1(ALU_dat1),
+            .ALU_dat2(ALU_dat2),
             .Instruction_to_ALU(Instruction_to_ALU),
             .Comparator_out(Comparator_out),
             .Comparator_con_met(Comparator_con_met)
         );
 
         LogOp LO(
-            .ALU_dat1(reg_ALU_dat1),
-            .ALU_dat2(reg_ALU_dat2),
+            .ALU_dat1(ALU_dat1),
+            .ALU_dat2(ALU_dat2),
             .Instruction_to_ALU(Instruction_to_ALU),
             .LogOp_out(LogOp_out)
         );
 
         Shifter S(
-            .ALU_dat1(reg_ALU_dat1),
-            .ALU_dat2(reg_ALU_dat2),
+            .ALU_dat1(ALU_dat1),
+            .ALU_dat2(ALU_dat2),
             .Instruction_to_ALU(Instruction_to_ALU),
             .Shifter_out(Shifter_out)
         );

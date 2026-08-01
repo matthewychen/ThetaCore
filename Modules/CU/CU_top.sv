@@ -34,8 +34,11 @@ module CU_top(
 // 13 CPI to roughly 5. Parameterising it makes that a two-line change rather
 // than an FSM rewrite.
 //------------------------------------------------------------------------------
-localparam [2:0] IDU_LATENCY = 3'd4;
-localparam [2:0] ALU_LATENCY = 3'd4;
+// B10 collapsed both modules to a single registered cycle. These are 2, not 1,
+// because the result is registered: the module computes on the first edge after
+// its reset lifts, so the FSM can only sample it on the second.
+localparam [2:0] IDU_LATENCY = 3'd2;
+localparam [2:0] ALU_LATENCY = 3'd2;
 
 localparam [2:0] S_IF  = 3'd0,
                  S_ID  = 3'd1,
