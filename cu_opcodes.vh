@@ -114,4 +114,41 @@
 `define ALUOP_AND   5'd15
 `define ALUOP_NOP   5'd16
 
+// ---------- datapath control signals ----------
+//
+// Named after the Berkeley RV32I datapath (PCSel / ASel / BSel / WBSel /
+// MemRW / RegWEn) so this control table can be checked against any
+// reference core.
+//
+// Two Berkeley signals are deliberately absent:
+//   ImmSel  -- IDU_top generates imm internally and emits it directly.
+//   BrUn/BrEq/BrLT -- our Comparator takes the specific branch opcode and
+//                     emits "taken" (con_met) directly, rather than raw
+//                     equal/less-than flags the control logic must combine.
+//                     Strictly simpler than the reference.
+
+// next PC source
+`define PCSEL_SEQ     2'd0  // PC + pc_increment (covers sequential and JAL)
+`define PCSEL_BRANCH  2'd1  // PC + imm, taken branch
+`define PCSEL_JALR    2'd2  // (rs1 + imm) & ~1, from the ALU
+
+// ALU operand a
+`define ASEL_RS1      2'd0
+`define ASEL_PC       2'd1  // AUIPC
+`define ASEL_ZERO     2'd2  // LUI
+
+// ALU operand b
+`define BSEL_RS2      2'd0
+`define BSEL_IMM      2'd1
+`define BSEL_SHAMT    2'd2  // SLLI/SRLI/SRAI carry the count in shamt, not imm
+
+// register write-back source
+`define WBSEL_ALU     2'd0
+`define WBSEL_MEM     2'd1  // loads
+`define WBSEL_PC4     2'd2  // JAL/JALR return address
+
+// memory direction, matches MMU read_or_write
+`define MEMRW_READ    1'b0
+`define MEMRW_WRITE   1'b1
+
 `endif
