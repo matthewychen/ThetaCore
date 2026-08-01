@@ -42,11 +42,11 @@ reg [3:0] decryptedOPtype;
 always@(posedge soc_clk or posedge IDU_reset) begin
     if(IDU_reset) begin
         decryptedOPtype <= `OPT_INITIAL;
-        imm <= 32'bz;
-        rd <= 5'bz;
-        rs1 <= 5'bz;
-        rs2 <= 5'bz;
-        shamt <= 5'bz;
+        imm <= 32'b0;
+        rd <= 5'b0;
+        rs1 <= 5'b0;
+        rs2 <= 5'b0;
+        shamt <= 5'b0;
         pc_increment <= 4;
         Instruction_to_CU <= `CU_LUI;
         invalid_instruction <= 0;
@@ -80,9 +80,9 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                     `OPT_LUI: begin //LUI U
                         imm <= {instruction[31:12], {12{1'b0}}};
                         rd <= instruction[11:7];
-                        rs1 <= 5'bz;
-                        rs2 <= 5'bz;
-                        shamt <= 5'bz;
+                        rs1 <= 5'b0;
+                        rs2 <= 5'b0;
+                        shamt <= 5'b0;
                         pc_increment <= 4;
                         Instruction_to_CU <= `CU_LUI;
                         invalid_instruction <= 0;
@@ -90,9 +90,9 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                     `OPT_AUIPC: begin//AUIPC U
                         imm <= {instruction[31:12], {12{1'b0}}};
                         rd <= instruction[11:7];
-                        rs1 <= 5'bz;
-                        rs2 <= 5'bz;
-                        shamt <= 5'bz;
+                        rs1 <= 5'b0;
+                        rs2 <= 5'b0;
+                        shamt <= 5'b0;
                         pc_increment <= 4;
                         Instruction_to_CU <= `CU_AUIPC;
                         invalid_instruction <= 0;
@@ -100,9 +100,9 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                     `OPT_JAL: begin//JAL J
                         imm <= 32'b0;
                         rd <= instruction[11:7];
-                        rs1 <= 5'bz;
-                        rs2 <= 5'bz;
-                        shamt <= 5'bz;
+                        rs1 <= 5'b0;
+                        rs2 <= 5'b0;
+                        shamt <= 5'b0;
                         pc_increment <= {{11{instruction[31]}}, instruction[31], instruction[19:12], instruction[20], instruction[30:21],1'b0}; //note the ending with 1'b0 as jumps must be aligned to the nearest 2 bytes to accommodate for R16 instructions.
                         Instruction_to_CU <= `CU_JAL;
                         invalid_instruction <= 0;
@@ -111,18 +111,18 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         imm <= {{20{instruction[31]}}, instruction[31:20]}; //same logic as above, but note that the lsb does not need to be 0 as rs1 + imm can both be odd and result in an even address. if it doesn't, make sure to cut off the last bit.
                         rd <= instruction[11:7];
                         rs1 <= instruction[19:15];
-                        rs2 <= 5'bz;
-                        shamt <= 5'bz;
+                        rs2 <= 5'b0;
+                        shamt <= 5'b0;
                         pc_increment <= 4;
                         Instruction_to_CU <= `CU_JALR;
                         invalid_instruction <= 0;
                     end
                     `OPT_B: begin//B
                         imm <= {{19{instruction[31]}}, instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
-                        rd <= 5'bz;
+                        rd <= 5'b0;
                         rs1 <= instruction[19:15];
                         rs2 <= instruction[24:20];
-                        shamt <= 5'bz;
+                        shamt <= 5'b0;
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
@@ -137,10 +137,10 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                     end
                     `OPT_S: begin//S
                         imm <= {{20{instruction[31]}}, instruction[31], instruction[30:25], instruction[11:7]};
-                        rd <= 5'bz;
+                        rd <= 5'b0;
                         rs1 <= instruction[19:15];
                         rs2 <= instruction[24:20];
-                        shamt <= 5'bz;
+                        shamt <= 5'b0;
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
@@ -154,8 +154,8 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         imm <= {{20{instruction[31]}}, instruction[31:20]};
                         rd <= instruction[11:7];
                         rs1 <= instruction[19:15];
-                        rs2 <= 5'bz;
-                        shamt <= 5'bz;
+                        rs2 <= 5'b0;
+                        shamt <= 5'b0;
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
@@ -170,56 +170,56 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                     `OPT_ICALC: begin//IG2 I (calc)
                         rd <= instruction[11:7];
                         rs1 <= instruction[19:15];
-                        rs2 <= 5'bz;
+                        rs2 <= 5'b0;
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
                             3'b000: begin //addi
                                 Instruction_to_CU <= `CU_ADDI; 
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
-                                shamt <= 5'bz;
+                                shamt <= 5'b0;
                             end
                             3'b010: begin //slti
                                 Instruction_to_CU <= `CU_SLTI; 
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
-                                shamt <= 5'bz;
+                                shamt <= 5'b0;
                             end
                             3'b011: begin //sltiu
                                 Instruction_to_CU <= `CU_SLTIU; 
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
-                                shamt <= 5'bz;
+                                shamt <= 5'b0;
                             end
                             3'b100: begin //xori
                                 Instruction_to_CU <= `CU_XORI;
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
-                                shamt <= 5'bz;
+                                shamt <= 5'b0;
                             end
                             3'b110: begin //ori
                                 Instruction_to_CU <= `CU_ORI;
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
-                                shamt <= 5'bz;
+                                shamt <= 5'b0;
                             end
                             3'b111: begin //andi
                                 Instruction_to_CU <= `CU_ANDI;
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
-                                shamt <= 5'bz;
+                                shamt <= 5'b0;
                             end
 
 
                             3'b001: begin
                                 Instruction_to_CU <= `CU_SLLI;
-                                imm <= 32'bz;
+                                imm <= 32'b0;
                                 shamt <= instruction[24:20];
                             end
 
                             3'b101: begin
                                 if(!instruction[30]) begin
                                     Instruction_to_CU <= `CU_SRLI;
-                                    imm <= 32'bz;
+                                    imm <= 32'b0;
                                     shamt <= instruction[24:20];
                                 end else begin
                                     Instruction_to_CU <= `CU_SRAI;
-                                    imm <= 32'bz;
+                                    imm <= 32'b0;
                                     shamt <= instruction[24:20];
                                 end
                             end
@@ -229,11 +229,11 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                     end
 
                     `OPT_R: begin//R
-                        imm <= 32'bz;
+                        imm <= 32'b0;
                         rd <= instruction[11:7];
                         rs1 <= instruction[19:15];
                         rs2 <= instruction[24:20];
-                        shamt <= 5'bz;
+                        shamt <= 5'b0;
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
@@ -261,11 +261,11 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         endcase
                     end
                     `OPT_FENCE: begin//FENCE/FENCE.I
-                        imm <= 32'bz;
-                        rd <= 5'bz;
-                        rs1 <= 5'bz;
-                        rs2 <= 5'bz;
-                        shamt <= 5'bz;
+                        imm <= 32'b0;
+                        rd <= 5'b0;
+                        rs1 <= 5'b0;
+                        rs2 <= 5'b0;
+                        shamt <= 5'b0;
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
@@ -279,11 +279,11 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                             1'b0: begin
                                 Instruction_to_CU <= `CU_ECALL; //ecall
                                 decryptedOPtype <= `OPT_INITIAL;
-                                imm <= 32'bz;
-                                rd <= 5'bz;
-                                rs1 <= 5'bz;
-                                rs2 <= 5'bz;
-                                shamt <= 5'bz;
+                                imm <= 32'b0;
+                                rd <= 5'b0;
+                                rs1 <= 5'b0;
+                                rs2 <= 5'b0;
+                                shamt <= 5'b0;
                                 pc_increment <= 4;
                                 invalid_instruction <= 0;
                             end
@@ -291,18 +291,16 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         endcase
                     end
 
-                   // `OPT_INITIAL: begin//INITIALIZED
-                   //     imm <= 32'bz;
-                   //     rd <= 5'bz;
-                   //     rs1 <= 5'bz;
-                   //     rs2 <= 5'bz;
-                   //     shamt <= 5'bz;
-                   //     pc_increment <= 4;
-                   //     invalid_instruction <= 0;
-                   // end
+                    `OPT_INITIAL: begin //post-reset, nothing decoded yet
+                        invalid_instruction <= 0;
+                    end
 
-                    default: begin //ERROR. should catch 11 case
-                        $finish;
+                    //Was an unconditional $finish. A zeroed instruction word
+                    //classifies as OPT_INVALID and landed here, terminating the
+                    //whole simulation with no message -- which reads as "the CPU
+                    //does nothing". Raise the flag and let CU_top decide.
+                    default: begin //ERROR. should catch the OPT_INVALID case
+                        invalid_instruction <= 1;
                     end
                 endcase
 
