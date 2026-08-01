@@ -36,11 +36,6 @@ module regfile(
 
     always @(posedge soc_clk or posedge reset) begin
         if (reset) begin
-            // Clearing all 32 on reset is a simulation-determinism choice, not
-            // a hardware requirement: real silicon leaves them undefined. We
-            // removed every X/Z source from the IDU in B3 precisely so that an
-            // X appearing in a waveform means a real bug; an uninitialised
-            // register file would put that back.
             for (i = 0; i < 32; i = i + 1) regs[i] <= 32'b0;
         end else if (RegWEn && rd_addr != 5'd0) begin
             regs[rd_addr] <= rd_data;

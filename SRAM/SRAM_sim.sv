@@ -11,14 +11,27 @@ module SRAM_sim(
     output wire [31:0] dataout
 );
 
-    reg [31:0] memory [127:0];
+    // Declared [0:127] rather than [127:0]: $readmemh's fill direction is
+    // ambiguous for a descending range and it warns about the 1364-2005
+    // behaviour change. Indexing is unaffected.
+    reg [31:0] memory [0:127];
     reg [31:0] reg_dataout;
 
     integer i;
 
+    reg [1023:0] progfile;
+
     initial begin
         for (i = 0; i < 128; i = i + 1) begin
             memory[i] = 32'b0;
+        end
+        // Load a program image if one was named on the vvp command line:
+        //     vvp testsim +PROG=programs/arith.hex
+        // A plusarg rather than a parameter so the path does not have to be
+        // threaded down through dut_top -> CU_top -> MMU to get here.
+        if ($value$plusargs("PROG=%s", progfile)) begin
+            $readmemh(progfile, memory);
+            $display("[SRAM] loaded program image %0s", progfile);
         end
     end
 
