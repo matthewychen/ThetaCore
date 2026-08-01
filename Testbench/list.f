@@ -30,7 +30,11 @@
 ../Components/Components/twoscomp.sv
 
 // ---- testbench: pick exactly one ----
+// tb_cpu    self-contained, loads its own programs, the default regression
+// tb_run    generic runner, loads whatever +PROG names (needs dut_top.sv above)
 ./CPU_TB/tb_cpu.sv
+//./CPU_TB/tb_run.sv
+//../Modules/dut_top.sv
 //./IDU_TB/tb_idu.sv
 //./ALU_TB/tb_alu.sv
 //./SRAM_TB/tb_sram.sv
