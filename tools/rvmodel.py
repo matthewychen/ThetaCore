@@ -86,8 +86,10 @@ class Model:
 
     # ---- execute one instruction ----
     def step(self):
-        if (self.pc >> 2) >= len(self.mem):
-            self.error = "pc out of range: %d" % self.pc
+        # Same contract as the RTL's fetch-side check: word-aligned and inside
+        # memory, else halt with the PC naming the bad address.
+        if (self.pc & 3) or (self.pc >> 2) >= len(self.mem):
+            self.error = "pc misaligned or out of range: %d" % self.pc
             self.halted = True
             return
 
@@ -128,6 +130,14 @@ class Model:
 
         elif op == 0x03:                                # loads
             addr = u32(a + sext(inst >> 20, 12))
+            # Halt on misalignment, matching the RTL. Previously this model
+            # read the straddling bytes while the RTL truncated the address --
+            # two different wrong answers, invisible to a generator that only
+            # produced aligned accesses.
+            if (f3 in (1, 5) and (addr & 1)) or (f3 == 2 and (addr & 3)):
+                self.error = "misaligned load addr=%d at pc=%d" % (addr, self.pc)
+                self.halted = True
+                return
             if   f3 == 0: v = sext(self.rb(addr), 8)
             elif f3 == 1: v = sext(self.rh(addr), 16)
             elif f3 == 2: v = self.rw(addr)
@@ -142,6 +152,10 @@ class Model:
         elif op == 0x23:                                # stores
             imm = sext(((inst >> 25) << 5) | ((inst >> 7) & 0x1F), 12)
             addr = u32(a + imm)
+            if (f3 == 1 and (addr & 1)) or (f3 == 2 and (addr & 3)):
+                self.error = "misaligned store addr=%d at pc=%d" % (addr, self.pc)
+                self.halted = True
+                return
             if   f3 == 0: self.wb(addr, b)
             elif f3 == 1: self.wh(addr, b)
             elif f3 == 2: self.ww(addr, b)

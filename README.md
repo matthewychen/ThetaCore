@@ -65,5 +65,7 @@ programs load at address 0 and memory is unified, so keep data clear of the prog
 
 Ecall/Ebreak are treated as program terminations. FENCE is treated as FENCE.I for simplicity!
 
+Invalid instructions, misaligned loads/stores, and jumps past the end of memory halt the core with the PC naming the faulting instruction. Reserved encodings are not detected (nonzero funct7 bits, RV32M, CSRs) — they execute as the nearest base RV32I instruction.
+
 ### Todo:
 - ~~assembler that will translate assembly code into .bin?~~ done, tools/asm.py

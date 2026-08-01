@@ -10,6 +10,13 @@ tools/rvmodel.py, and compares all 32 registers plus all 128 memory words.
 Termination is structural: every control transfer generated is FORWARD and
 bounded by the ecall in the final slot, so no generated program can loop.
 
+A fraction of programs additionally carry ONE injected fault -- an invalid
+encoding, a misaligned access, a misaligned branch target, or a jump past the
+end of memory. These exist because the original generator's safety constraints
+(valid-only, aligned-only, bounded-only) mapped exactly onto the regions where
+the RTL and the model had quietly diverged; both now halt identically on every
+fault class, and this keeps them held to that.
+
 Failing programs are written to failures/ with the diff, so a mismatch is
 immediately reproducible.
 """
@@ -98,9 +105,53 @@ def gen_program(rng):
 
     prog.append(enc_i(0, 0, 0, 0, OP_SYS))          # ecall, always reachable
 
+    # Inject at most one fault per program, in ~30% of programs. Both sides
+    # must halt identically at it; everything before it still gets compared.
+    fault = None
+    if rng.random() < 0.30:
+        k = rng.randrange(last)
+        fault = gen_fault(rng, k, last)
+        prog[k] = fault
+
     image = prog + [0] * (DATA_LO - len(prog))
     image += [rng.randrange(1 << 32) for _ in range(DATA_LO, MEM_WORDS)]
-    return image
+    return image, fault is not None
+
+
+def gen_fault(rng, k, last):
+    """One instruction from the classes the original generator avoided."""
+    rd, rs1, rs2 = rng.randrange(32), rng.randrange(32), rng.randrange(32)
+    kind = rng.choice(['bad_load_f3', 'bad_opcode', 'bad_branch_f3',
+                       'mis_half', 'mis_word', 'mis_store_h', 'mis_store_w',
+                       'mis_branch', 'oob_jal'])
+
+    if kind == 'bad_load_f3':      # ghost-write case: real rd, invalid funct3
+        return enc_i(data_addr(rng, 1), 0, rng.choice([3, 6, 7]), rd, OP_LD)
+    if kind == 'bad_opcode':       # unknown major opcode
+        return rng.choice([0x00000000, 0x0000000B, 0x0000007F])
+    if kind == 'bad_branch_f3':
+        tgt = rng.randint(k + 1, last)
+        return enc_b((tgt - k) * 4, rs2, rs1, rng.choice([2, 3]), OP_BR)
+    if kind == 'mis_half':         # lh/lhu at an odd byte address
+        return enc_i(rng.randrange(DATA_LO, DATA_HI) * 4 + rng.choice([1, 3]),
+                     0, rng.choice([1, 5]), rd, OP_LD)
+    if kind == 'mis_word':         # lw not on a word boundary
+        return enc_i(rng.randrange(DATA_LO, DATA_HI) * 4 + rng.choice([1, 2, 3]),
+                     0, 2, rd, OP_LD)
+    if kind == 'mis_store_h':
+        return enc_s(rng.randrange(DATA_LO, DATA_HI) * 4 + rng.choice([1, 3]),
+                     rs2, 0, 1, OP_ST)
+    if kind == 'mis_store_w':
+        return enc_s(rng.randrange(DATA_LO, DATA_HI) * 4 + rng.choice([1, 2, 3]),
+                     rs2, 0, 2, OP_ST)
+    if kind == 'mis_branch':       # target 2 mod 4; faults only if taken
+        tgt = rng.randint(k + 1, last)
+        return enc_b((tgt - k) * 4 + 2, rs2, rs1,
+                     rng.choice([0, 1, 4, 5, 6, 7]), OP_BR)
+    # oob_jal: retires normally (link written), then the fetch of the
+    # out-of-range target halts both sides with the same PC.
+    tgt_byte = (MEM_WORDS + rng.randrange(64)) * 4
+    return enc_j(tgt_byte - k * 4, rd, OP_JAL)
 
 
 STATE = re.compile(r'^([xm]\d+)=([0-9a-fA-F]{8})$')
@@ -146,9 +197,10 @@ def main():
     faildir = os.path.join(ROOT, "failures")
     tmp = os.path.join(ROOT, "programs", "_difftest.hex")
 
-    ok = fail = 0
+    ok = fail = faulted = 0
     for run in range(args.runs):
-        image = gen_program(rng)
+        image, has_fault = gen_program(rng)
+        faulted += has_fault
         with open(tmp, "w") as f:
             f.write('\n'.join("%08x" % w for w in image) + '\n')
 
@@ -186,7 +238,8 @@ def main():
         os.remove(tmp)
 
     print("")
-    print("difftest: %d passed, %d failed (seed=%d)" % (ok, fail, args.seed))
+    print("difftest: %d passed, %d failed (seed=%d, %d programs carried an "
+          "injected fault)" % (ok, fail, args.seed, faulted))
     return 1 if fail else 0
 
 

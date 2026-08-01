@@ -169,6 +169,53 @@ module tb_cpu;
         chk("jal target skipped", DUT.registers.regs[6], 32'd0);
         chk("PC halted at 32",    dbg_PC, 32'd32);
 
+        //----------------------------------------------------------------------
+        // Program 3: misaligned lh must halt at the faulting instruction with
+        // no register write and no instruction after it executing. The MMU's
+        // lane logic would silently have read the aligned half at 64.
+        //----------------------------------------------------------------------
+        reset = 1;
+        repeat (4) @(posedge soc_clk);
+        #1;
+        DUT.memory.sram_inst.memory[0] = 32'h00500093; // addi x1, x0, 5
+        DUT.memory.sram_inst.memory[1] = 32'h04101283; // lh   x5, 65(x0)  MISALIGNED
+        DUT.memory.sram_inst.memory[2] = 32'h00100313; // addi x6, x0, 1   canary
+        DUT.memory.sram_inst.memory[3] = 32'h00000073; // ecall
+        repeat (2) @(posedge soc_clk);
+
+        $display("");
+        $display("=== program 3: misaligned load faults ===");
+        run_to_halt;
+
+        chk("x1 = 5 before fault", DUT.registers.regs[1], 32'd5);
+        chk("x5 not written",      DUT.registers.regs[5], 32'd0);
+        chk("canary not reached",  DUT.registers.regs[6], 32'd0);
+        chk("PC names the lh",     dbg_PC, 32'd4);
+
+        //----------------------------------------------------------------------
+        // Program 4: invalid load funct3 must halt without the ghost write.
+        // The IDU's invalid path leaves Instruction_to_CU at CU_LUI while
+        // latching the bad word's rd and imm, so this used to retire a
+        // phantom "x3 = 0 + 8" on the way to the halt.
+        //----------------------------------------------------------------------
+        reset = 1;
+        repeat (4) @(posedge soc_clk);
+        #1;
+        DUT.memory.sram_inst.memory[0] = 32'h00500093; // addi x1, x0, 5
+        DUT.memory.sram_inst.memory[1] = 32'h0080B183; // INVALID: load f3=011, rd=3, imm=8
+        DUT.memory.sram_inst.memory[2] = 32'h00100313; // addi x6, x0, 1   canary
+        DUT.memory.sram_inst.memory[3] = 32'h00000073; // ecall
+        repeat (2) @(posedge soc_clk);
+
+        $display("");
+        $display("=== program 4: invalid instruction halts cleanly ===");
+        run_to_halt;
+
+        chk("x1 = 5 before fault", DUT.registers.regs[1], 32'd5);
+        chk("no ghost write to x3", DUT.registers.regs[3], 32'd0);
+        chk("canary not reached",  DUT.registers.regs[6], 32'd0);
+        chk("PC names the invalid", dbg_PC, 32'd4);
+
         $display("==================================");
         $display("Passed: %0d  Failed: %0d", passed, failed);
         $display("==================================");

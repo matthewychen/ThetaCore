@@ -12,6 +12,12 @@
 // The CU supplies width and signedness rather than raw byte enables: it is the
 // thing that knows the opcode, and computing enables from an address is the
 // memory's job, not the control unit's.
+//
+// Alignment is enforced UPSTREAM: the CU halts on a misaligned effective
+// address and never issues it here. Handed one anyway, the lane logic below
+// truncates (a halfword at byte 65 would read the aligned pair at 64) -- that
+// is dont-care behaviour for addresses that can no longer arrive, not a
+// supported semantics.
 //==============================================================================
 
 module MMU(

@@ -28,17 +28,15 @@ module CU_top(
 //------------------------------------------------------------------------------
 // Per-stage latency.
 //
-// IDU_top and ALU_top each run a four-phase internal counter, so the FSM waits
-// them out. Both are purely combinational underneath -- B10 collapses those
-// counters and these two constants become 1, taking the core from roughly
-// 13 CPI to roughly 5. Parameterising it makes that a two-line change rather
-// than an FSM rewrite.
-//------------------------------------------------------------------------------
-// B10 collapsed both modules to a single registered cycle. These are 2, not 1,
+// Both modules complete in a single registered cycle. These are 2, not 1,
 // because the result is registered: the module computes on the first edge after
 // its reset lifts, so the FSM can only sample it on the second.
+//------------------------------------------------------------------------------
 localparam [2:0] IDU_LATENCY = 3'd2;
 localparam [2:0] ALU_LATENCY = 3'd2;
+
+// One unified 128-word memory; anything past it is nowhere.
+localparam [31:0] MEM_BYTES = 32'd512;
 
 localparam [2:0] S_IF  = 3'd0,
                  S_ID  = 3'd1,
@@ -66,6 +64,7 @@ reg        invalid_r;
 reg [31:0] alu_result_r;
 reg        con_met_r;
 reg [31:0] load_data_r;
+reg        mem_fault_r;   // data access was misaligned; halt at WB
 
 //------------------------------------------------------------------------------
 // Sub-module wiring
@@ -99,7 +98,12 @@ wire is_shifti = (cu_op_r == `CU_SLLI) || (cu_op_r == `CU_SRLI) ||
                  (cu_op_r == `CU_SRAI);
 wire is_fence  = (cu_op_r == `CU_FENCE) || (cu_op_r == `CU_FENCE_I);
 wire is_system = (cu_op_r == `CU_ECALL) || (cu_op_r == `CU_EBREAK);
-wire needs_mem = is_load || is_store;
+// Gated on invalid: an unrecognised word must not reach memory. Without this
+// (and the matching gate on wb_enable) an invalid encoding executed a ghost
+// instruction on the way to the halt -- the IDU's invalid path leaves
+// Instruction_to_CU at its reset value CU_LUI while still latching the bad
+// word's rd and imm fields, so an invalid load wrote rd <= 0 + imm.
+wire needs_mem = (is_load || is_store) && !invalid_r;
 
 //------------------------------------------------------------------------------
 // Control table: mux selects by instruction type.
@@ -116,9 +120,11 @@ wire [1:0] WBSel = is_load             ? `WBSEL_MEM
                  : (is_jal || is_jalr) ? `WBSEL_PC4
                  :                       `WBSEL_ALU;
 
-// Stores, branches, fences and system calls produce no architectural result.
+// Stores, branches, fences and system calls produce no architectural result,
+// and neither does a faulting instruction (see needs_mem above).
 // The register file independently refuses writes to x0.
-wire wb_enable = !(is_store || is_branch || is_fence || is_system);
+wire wb_enable = !(is_store || is_branch || is_fence || is_system)
+                 && !invalid_r && !mem_fault_r;
 
 wire [1:0] PCSel = is_jalr                  ? `PCSEL_JALR
                  : (is_branch && con_met_r) ? `PCSEL_BRANCH
@@ -130,6 +136,21 @@ wire [1:0] mem_width =
                                                                      `MEMW_WORD;
 
 wire mem_signed = (cu_op_r == `CU_LB) || (cu_op_r == `CU_LH);
+
+// Misalignment check on the effective address, evaluated at the end of EX
+// against ALU_out (alu_result_r is captured on that same edge). The MMU's lane
+// logic quietly truncates a misaligned address -- lh at byte 65 would read the
+// aligned half at 64 -- which is wrong in a way that never announces itself,
+// and the reference model reads the straddling bytes, so the two silently
+// diverged. Neither behaviour is defensible; halt instead.
+wire misaligned_c = (mem_width == `MEMW_HALF && ALU_out[0])
+                  | (mem_width == `MEMW_WORD && ALU_out[1:0] != 2'b00);
+
+// Fetch-side check: PC must be word-aligned (branch and JAL immediates can
+// produce targets that are 2 mod 4) and inside the memory. Fetch wraps modulo
+// MEM_BYTES in the MMU address slice, so an out-of-range PC would otherwise
+// re-execute whatever lives at the wrapped address, forever.
+wire fetch_fault_c = (PC[1:0] != 2'b00) || (PC >= MEM_BYTES);
 
 //------------------------------------------------------------------------------
 // The five muxes.
@@ -155,8 +176,8 @@ wire        mem_rw   = (state == S_IF) ? `MEMRW_READ
 
 // retrieve may stay asserted for the whole state: the MMU only samples it in
 // its own idle state, and we leave S_IF/S_MEM on the same edge it returns
-// there, so no second access can start.
-wire mem_req = (state == S_IF) || (state == S_MEM);
+// there, so no second access can start. A faulting fetch never issues.
+wire mem_req = ((state == S_IF) && !fetch_fault_c) || (state == S_MEM);
 
 //------------------------------------------------------------------------------
 // State-driven enables.
@@ -168,7 +189,7 @@ wire RegWEn     = (state == S_WB) && wb_enable;
 // Hold the PC on a halt so it points AT the instruction that stopped the
 // machine rather than one past it -- the same reason a trap handler wants
 // mepc to name the faulting instruction.
-wire PCWrite    = (state == S_WB) && !(is_system || invalid_r);
+wire PCWrite    = (state == S_WB) && !(is_system || invalid_r || mem_fault_r);
 
 assign dbg_PC     = PC;
 assign dbg_IR     = Cu_IR;
@@ -186,13 +207,22 @@ always @(posedge soc_clk or posedge reset) begin
         rs2_r <= 5'b0; shamt_r <= 5'b0; pc_increment_r <= 32'd4;
         invalid_r <= 1'b0;
         alu_result_r <= 32'b0; con_met_r <= 1'b0; load_data_r <= 32'b0;
+        mem_fault_r <= 1'b0;
     end else begin
         case (state)
-            S_IF: if (MMU_ready) begin
-                Cu_IR <= MMU_dat_out;
-                cyc   <= 3'd0;
-                state <= S_ID;
-            end
+            S_IF:
+                if (fetch_fault_c) begin
+                    if (PC[1:0] != 2'b00)
+                        $display("[CU] halt: misaligned PC=%0d", PC);
+                    else
+                        $display("[CU] halt: PC out of range, PC=%0d", PC);
+                    state <= S_HALT;
+                end
+                else if (MMU_ready) begin
+                    Cu_IR <= MMU_dat_out;
+                    cyc   <= 3'd0;
+                    state <= S_ID;
+                end
 
             S_ID: if (cyc == IDU_LATENCY - 1) begin
                 // Capture the decode before IDU_reset reasserts and zeroes it.
@@ -204,6 +234,7 @@ always @(posedge soc_clk or posedge reset) begin
                 shamt_r        <= shamt;
                 pc_increment_r <= pc_increment;
                 invalid_r      <= invalid_instruction;
+                mem_fault_r    <= 1'b0;
                 cyc            <= 3'd0;
                 state          <= S_EX;
             end else cyc <= cyc + 3'd1;
@@ -212,8 +243,11 @@ always @(posedge soc_clk or posedge reset) begin
                 // Same again: EX_reset clears ALU_out on the way out.
                 alu_result_r <= ALU_out;
                 con_met_r    <= ALU_con_met;
+                mem_fault_r  <= needs_mem && misaligned_c;
                 cyc          <= 3'd0;
-                state        <= needs_mem ? S_MEM : S_WB;
+                // A misaligned access skips MEM entirely -- the MMU never
+                // sees the bad address -- and falls through to WB to halt.
+                state        <= (needs_mem && !misaligned_c) ? S_MEM : S_WB;
             end else cyc <= cyc + 3'd1;
 
             S_MEM: if (MMU_ready) begin
@@ -224,12 +258,15 @@ always @(posedge soc_clk or posedge reset) begin
 
             S_WB: begin
                 cyc <= 3'd0;
-                if (is_system || invalid_r) begin
+                if (is_system || invalid_r || mem_fault_r) begin
                     // ECALL/EBREAK are program termination per the README.
                     // invalid_r here means the IDU could not classify the word.
                     if (invalid_r)
                         $display("[CU] halt: invalid instruction, PC=%0d IR=%08x",
                                  PC, Cu_IR);
+                    else if (mem_fault_r)
+                        $display("[CU] halt: misaligned data access, PC=%0d addr=%0d",
+                                 PC, alu_result_r);
                     else
                         $display("[CU] halt: ecall/ebreak at PC=%0d", PC);
                     state <= S_HALT;
