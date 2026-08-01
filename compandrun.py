@@ -134,9 +134,18 @@ def main():
     if not args.no_wave:
         plus.append("+WAVE")
     r = run(["vvp", sim] + plus, cwd=BUILD)
-    if r.returncode:
+    # vvp exits 0 even when $readmemh fails or the RTL bails out, so the exit
+    # code alone proves nothing. Surface stderr always, and treat a FATAL line
+    # from the testbench (e.g. the SRAM program-image probe) as a hard stop.
+    if r.stderr.strip():
         sys.stderr.write(r.stderr)
+    if r.returncode:
         die("simulation failed")
+    if "FATAL" in r.stdout:
+        for ln in r.stdout.splitlines():
+            if "FATAL" in ln:
+                print(ln, file=sys.stderr)
+        die("simulation reported a fatal error")
     out = r.stdout.splitlines()
 
     # ---- 4. report ---------------------------------------------------------

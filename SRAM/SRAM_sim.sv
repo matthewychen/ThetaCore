@@ -19,7 +19,12 @@ module SRAM_sim(
 
     integer i;
 
-    reg [1023:0] progfile;
+    // 512 characters. Verilog silently truncates an over-long plusarg string
+    // FROM THE FRONT, turning an absolute path into a garbage relative one --
+    // at 128 chars this actually happened, and the $fopen probe below is what
+    // turns that from a silent all-zeros program into a fatal error.
+    reg [8*512-1:0] progfile;
+    integer pf;
 
     initial begin
         for (i = 0; i < 128; i = i + 1) begin
@@ -30,6 +35,14 @@ module SRAM_sim(
         // A plusarg rather than a parameter so the path does not have to be
         // threaded down through dut_top -> CU_top -> MMU to get here.
         if ($value$plusargs("PROG=%s", progfile)) begin
+            // Probe before $readmemh: readmemh failure is only a warning, and
+            // announcing success after a failed load is worse than useless.
+            pf = $fopen(progfile, "r");
+            if (pf == 0) begin
+                $display("[SRAM] FATAL: cannot open program image %0s", progfile);
+                $finish;
+            end
+            $fclose(pf);
             $readmemh(progfile, memory);
             $display("[SRAM] loaded program image %0s", progfile);
         end
