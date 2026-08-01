@@ -1,3 +1,5 @@
+`include "cu_opcodes.vh"
+
 module IDU_top(
     //templated
     input soc_clk,
@@ -39,14 +41,14 @@ reg [3:0] decryptedOPtype;
 
 always@(posedge soc_clk or posedge IDU_reset) begin
     if(IDU_reset) begin
-        decryptedOPtype <= 12;
+        decryptedOPtype <= `OPT_INITIAL;
         imm <= 32'bz;
         rd <= 5'bz;
         rs1 <= 5'bz;
         rs2 <= 5'bz;
         shamt <= 5'bz;
         pc_increment <= 4;
-        Instruction_to_CU <= 0;
+        Instruction_to_CU <= `CU_LUI;
         invalid_instruction <= 0;
         IDU_result_counter <= 0;
     end
@@ -58,64 +60,64 @@ always@(posedge soc_clk or posedge IDU_reset) begin
 
             1: //decode broad type
                 case(instruction[6:0]) //optype classification
-                    7'b0110111: decryptedOPtype <= 0;
-                    7'b0010111: decryptedOPtype <= 1;
-                    7'b1101111: decryptedOPtype <= 2;
-                    7'b1100111: decryptedOPtype <= 3;
-                    7'b1100011: decryptedOPtype <= 4;
-                    7'b0100011: decryptedOPtype <= 5;
-                    7'b0000011: decryptedOPtype <= 6;
-                    7'b0010011: decryptedOPtype <= 7;
-                    7'b0110011: decryptedOPtype <= 8;
-                    7'b0001111: decryptedOPtype <= 9; //fence
-                    7'b1110011: decryptedOPtype <= 10; //ecall/ebreak
-                    default: decryptedOPtype <= 11; //error case
+                    7'b0110111: decryptedOPtype <= `OPT_LUI;
+                    7'b0010111: decryptedOPtype <= `OPT_AUIPC;
+                    7'b1101111: decryptedOPtype <= `OPT_JAL;
+                    7'b1100111: decryptedOPtype <= `OPT_JALR;
+                    7'b1100011: decryptedOPtype <= `OPT_B;
+                    7'b0100011: decryptedOPtype <= `OPT_S;
+                    7'b0000011: decryptedOPtype <= `OPT_LOAD;
+                    7'b0010011: decryptedOPtype <= `OPT_ICALC;
+                    7'b0110011: decryptedOPtype <= `OPT_R;
+                    7'b0001111: decryptedOPtype <= `OPT_FENCE; //fence
+                    7'b1110011: decryptedOPtype <= `OPT_SYSTEM; //ecall/ebreak
+                    default: decryptedOPtype <= `OPT_INVALID; //error case
                 endcase
 
 
             2: //decode specific type and write to output
                 case(decryptedOPtype)
-                    4'd0: begin //LUI U
+                    `OPT_LUI: begin //LUI U
                         imm <= {instruction[31:12], {12{1'b0}}};
                         rd <= instruction[11:7];
                         rs1 <= 5'bz;
                         rs2 <= 5'bz;
                         shamt <= 5'bz;
                         pc_increment <= 4;
-                        Instruction_to_CU <= 0;
+                        Instruction_to_CU <= `CU_LUI;
                         invalid_instruction <= 0;
                     end
-                    4'd1: begin//AUIPC U
+                    `OPT_AUIPC: begin//AUIPC U
                         imm <= {instruction[31:12], {12{1'b0}}};
                         rd <= instruction[11:7];
                         rs1 <= 5'bz;
                         rs2 <= 5'bz;
                         shamt <= 5'bz;
                         pc_increment <= 4;
-                        Instruction_to_CU <= 1;
+                        Instruction_to_CU <= `CU_AUIPC;
                         invalid_instruction <= 0;
                     end
-                    4'd2: begin//JAL J
+                    `OPT_JAL: begin//JAL J
                         imm <= 32'b0;
                         rd <= instruction[11:7];
                         rs1 <= 5'bz;
                         rs2 <= 5'bz;
                         shamt <= 5'bz;
                         pc_increment <= {{11{instruction[31]}}, instruction[31], instruction[19:12], instruction[20], instruction[30:21],1'b0}; //note the ending with 1'b0 as jumps must be aligned to the nearest 2 bytes to accommodate for R16 instructions.
-                        Instruction_to_CU <= 2;
+                        Instruction_to_CU <= `CU_JAL;
                         invalid_instruction <= 0;
                     end
-                    4'd3: begin//JALR J
+                    `OPT_JALR: begin//JALR J
                         imm <= {{20{instruction[31]}}, instruction[31:20]}; //same logic as above, but note that the lsb does not need to be 0 as rs1 + imm can both be odd and result in an even address. if it doesn't, make sure to cut off the last bit.
                         rd <= instruction[11:7];
                         rs1 <= instruction[19:15];
                         rs2 <= 5'bz;
                         shamt <= 5'bz;
                         pc_increment <= 4;
-                        Instruction_to_CU <= 3;
+                        Instruction_to_CU <= `CU_JALR;
                         invalid_instruction <= 0;
                     end
-                    4'd4: begin//B
+                    `OPT_B: begin//B
                         imm <= {{19{instruction[31]}}, instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
                         rd <= 5'bz;
                         rs1 <= instruction[19:15];
@@ -124,16 +126,16 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
-                            3'b000: Instruction_to_CU <= 4; //beq
-                            3'b001: Instruction_to_CU <= 5; //bne
-                            3'b100: Instruction_to_CU <= 6; //blt
-                            3'b101: Instruction_to_CU <= 7; //bge
-                            3'b110: Instruction_to_CU <= 8; //bltu
-                            3'b111: Instruction_to_CU <= 9; //bgeu
+                            3'b000: Instruction_to_CU <= `CU_BEQ; //beq
+                            3'b001: Instruction_to_CU <= `CU_BNE; //bne
+                            3'b100: Instruction_to_CU <= `CU_BLT; //blt
+                            3'b101: Instruction_to_CU <= `CU_BGE; //bge
+                            3'b110: Instruction_to_CU <= `CU_BLTU; //bltu
+                            3'b111: Instruction_to_CU <= `CU_BGEU; //bgeu
                             default: invalid_instruction <= 1;
                         endcase
                     end
-                    4'd5: begin//S
+                    `OPT_S: begin//S
                         imm <= {{20{instruction[31]}}, instruction[31], instruction[30:25], instruction[11:7]};
                         rd <= 5'bz;
                         rs1 <= instruction[19:15];
@@ -142,13 +144,13 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
-                            3'b000: Instruction_to_CU <= 10; //sb
-                            3'b001: Instruction_to_CU <= 11; //sh
-                            3'b010: Instruction_to_CU <= 12; //sw
+                            3'b000: Instruction_to_CU <= `CU_SB; //sb
+                            3'b001: Instruction_to_CU <= `CU_SH; //sh
+                            3'b010: Instruction_to_CU <= `CU_SW; //sw
                             default: invalid_instruction <= 1;
                         endcase
                     end
-                    4'd6: begin//IG1 I (load)
+                    `OPT_LOAD: begin//IG1 I (load)
                         imm <= {{20{instruction[31]}}, instruction[31:20]};
                         rd <= instruction[11:7];
                         rs1 <= instruction[19:15];
@@ -157,15 +159,15 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
-                            3'b000: Instruction_to_CU <= 13; //lb
-                            3'b001: Instruction_to_CU <= 14; //lh
-                            3'b010: Instruction_to_CU <= 15; //lw
-                            3'b100: Instruction_to_CU <= 16; //lbu
-                            3'b101: Instruction_to_CU <= 17; //lhu
+                            3'b000: Instruction_to_CU <= `CU_LB; //lb
+                            3'b001: Instruction_to_CU <= `CU_LH; //lh
+                            3'b010: Instruction_to_CU <= `CU_LW; //lw
+                            3'b100: Instruction_to_CU <= `CU_LBU; //lbu
+                            3'b101: Instruction_to_CU <= `CU_LHU; //lhu
                             default: invalid_instruction <= 1;
                         endcase
                     end
-                    4'd7: begin//IG2 I (calc)
+                    `OPT_ICALC: begin//IG2 I (calc)
                         rd <= instruction[11:7];
                         rs1 <= instruction[19:15];
                         rs2 <= 5'bz;
@@ -173,50 +175,50 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         invalid_instruction <= 0;
                         case(instruction[14:12])
                             3'b000: begin //addi
-                                Instruction_to_CU <= 18; 
+                                Instruction_to_CU <= `CU_ADDI; 
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
                                 shamt <= 5'bz;
                             end
                             3'b010: begin //slti
-                                Instruction_to_CU <= 19; 
+                                Instruction_to_CU <= `CU_SLTI; 
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
                                 shamt <= 5'bz;
                             end
                             3'b011: begin //sltiu
-                                Instruction_to_CU <= 20; 
+                                Instruction_to_CU <= `CU_SLTIU; 
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
                                 shamt <= 5'bz;
                             end
                             3'b100: begin //xori
-                                Instruction_to_CU <= 21;
+                                Instruction_to_CU <= `CU_XORI;
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
                                 shamt <= 5'bz;
                             end
                             3'b110: begin //ori
-                                Instruction_to_CU <= 22;
+                                Instruction_to_CU <= `CU_ORI;
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
                                 shamt <= 5'bz;
                             end
                             3'b111: begin //andi
-                                Instruction_to_CU <= 23;
+                                Instruction_to_CU <= `CU_ANDI;
                                 imm <= {{20{instruction[31]}}, instruction[31:20]};
                                 shamt <= 5'bz;
                             end
 
 
                             3'b001: begin
-                                Instruction_to_CU <= 24;
+                                Instruction_to_CU <= `CU_SLLI;
                                 imm <= 32'bz;
                                 shamt <= instruction[24:20];
                             end
 
                             3'b101: begin
                                 if(!instruction[30]) begin
-                                    Instruction_to_CU <= 25;
+                                    Instruction_to_CU <= `CU_SRLI;
                                     imm <= 32'bz;
                                     shamt <= instruction[24:20];
                                 end else begin
-                                    Instruction_to_CU <= 26;
+                                    Instruction_to_CU <= `CU_SRAI;
                                     imm <= 32'bz;
                                     shamt <= instruction[24:20];
                                 end
@@ -226,7 +228,7 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         endcase
                     end
 
-                    4'd8: begin//R
+                    `OPT_R: begin//R
                         imm <= 32'bz;
                         rd <= instruction[11:7];
                         rs1 <= instruction[19:15];
@@ -237,28 +239,28 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         case(instruction[14:12])
                             3'b000: begin
                                 if(!instruction[30]) begin //add
-                                    Instruction_to_CU <= 27;
+                                    Instruction_to_CU <= `CU_ADD;
                                 end else begin //sub
-                                    Instruction_to_CU <= 28;
+                                    Instruction_to_CU <= `CU_SUB;
                                 end
                             end
-                            3'b001: Instruction_to_CU <= 29; //sll
-                            3'b010: Instruction_to_CU <= 30; //slt
-                            3'b011: Instruction_to_CU <= 31; //sltu
-                            3'b100: Instruction_to_CU <= 32; //xor
+                            3'b001: Instruction_to_CU <= `CU_SLL; //sll
+                            3'b010: Instruction_to_CU <= `CU_SLT; //slt
+                            3'b011: Instruction_to_CU <= `CU_SLTU; //sltu
+                            3'b100: Instruction_to_CU <= `CU_XOR; //xor
                             3'b101: begin 
                                 if(!instruction[30]) begin //srl
-                                    Instruction_to_CU <= 33;
+                                    Instruction_to_CU <= `CU_SRL;
                                 end else begin //sra
-                                    Instruction_to_CU <= 34;
+                                    Instruction_to_CU <= `CU_SRA;
                                 end
                             end
-                            3'b110: Instruction_to_CU <= 35; //or
-                            3'b111: Instruction_to_CU <= 36; //and
+                            3'b110: Instruction_to_CU <= `CU_OR; //or
+                            3'b111: Instruction_to_CU <= `CU_AND; //and
                             default: invalid_instruction <= 1;
                         endcase
                     end
-                    4'd9: begin//FENCE/FENCE.I
+                    `OPT_FENCE: begin//FENCE/FENCE.I
                         imm <= 32'bz;
                         rd <= 5'bz;
                         rs1 <= 5'bz;
@@ -267,16 +269,16 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                         pc_increment <= 4;
                         invalid_instruction <= 0;
                         case(instruction[14:12])
-                            3'b000: Instruction_to_CU <= 37; //fence
-                            3'b001: Instruction_to_CU <= 38; //fence.i
+                            3'b000: Instruction_to_CU <= `CU_FENCE; //fence
+                            3'b001: Instruction_to_CU <= `CU_FENCE_I; //fence.i
                             default: invalid_instruction <= 1;
                         endcase
                     end
-                    4'd10: begin//ECALL/EBREAK
+                    `OPT_SYSTEM: begin//ECALL/EBREAK
                         case(instruction[20])
                             1'b0: begin
-                                Instruction_to_CU <= 39; //ecall
-                                decryptedOPtype <= 12;
+                                Instruction_to_CU <= `CU_ECALL; //ecall
+                                decryptedOPtype <= `OPT_INITIAL;
                                 imm <= 32'bz;
                                 rd <= 5'bz;
                                 rs1 <= 5'bz;
@@ -285,11 +287,11 @@ always@(posedge soc_clk or posedge IDU_reset) begin
                                 pc_increment <= 4;
                                 invalid_instruction <= 0;
                             end
-                            1'b1: Instruction_to_CU <= 40; //ebreak means no reset
+                            1'b1: Instruction_to_CU <= `CU_EBREAK; //ebreak means no reset
                         endcase
                     end
 
-                   // 4'd12: begin//INITIALIZED
+                   // `OPT_INITIAL: begin//INITIALIZED
                    //     imm <= 32'bz;
                    //     rd <= 5'bz;
                    //     rs1 <= 5'bz;

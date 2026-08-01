@@ -1,6 +1,7 @@
 //LEAVE 1L WHITESPACE AT END FOR COMPILATION
 
-+incdir+./Testbench
++incdir+.
++incdir+..
 
 ../SRAM/SRAM_sim.sv
 
