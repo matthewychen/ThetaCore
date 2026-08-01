@@ -16,7 +16,6 @@ module tb_alu;
     wire ALU_overflow;
     wire ALU_con_met;
     wire ALU_zero;
-    wire ALU_err;
     wire ALU_ready;
     wire [31:0] ALU_out;
 
@@ -40,7 +39,6 @@ CU_EX dut (
     .overflow_flag(ALU_overflow),
     .zero_flag(ALU_zero),
     .condition_met_flag(ALU_con_met),
-    .error_flag(ALU_err),
     .EX_accept(EX_accept),
     .stage_counter(stage_counter)
 );

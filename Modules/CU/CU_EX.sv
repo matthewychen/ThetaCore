@@ -10,19 +10,9 @@ module CU_EX(
     output overflow_flag,
     output zero_flag,
     output condition_met_flag,
-    output error_flag,
     output EX_accept,
     output [1:0] stage_counter
 );
-
-    reg dat_ready;
-    
-    always@(posedge soc_clk or posedge EX_reset) begin
-        if(EX_reset) begin
-        end
-        else begin
-        end
-    end
 
     ALU_top ALU(
         .soc_clk(soc_clk),
@@ -33,7 +23,6 @@ module CU_EX(
         .ALU_overflow(overflow_flag),
         .ALU_con_met(condition_met_flag),
         .ALU_zero(zero_flag),
-        .ALU_err(error_flag),
         .ALU_ready(result_ready),
         .ALU_out(result_data),
         .ALU_accept(EX_accept),

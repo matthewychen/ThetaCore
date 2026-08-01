@@ -78,7 +78,7 @@ wire        invalid_instruction;
 wire [31:0] PC, pc_plus_4;
 wire [31:0] rs1_data, rs2_data;
 wire [31:0] ALU_out;
-wire        ALU_ready, ALU_overflow, ALU_zero, ALU_con_met, ALU_err, ALU_accept;
+wire        ALU_ready, ALU_overflow, ALU_zero, ALU_con_met, ALU_accept;
 wire [1:0]  ALU_stage;
 wire [31:0] MMU_dat_out;
 wire        MMU_ready;
@@ -296,7 +296,6 @@ CU_EX execute(
     .overflow_flag     (ALU_overflow),
     .zero_flag         (ALU_zero),
     .condition_met_flag(ALU_con_met),
-    .error_flag        (ALU_err),
     .EX_accept         (ALU_accept),
     .stage_counter     (ALU_stage)
 );

@@ -27,7 +27,6 @@
         output reg ALU_overflow,
         output reg ALU_con_met, //branching and SLTI flag
         output reg ALU_zero,
-        output reg ALU_err,
         output reg ALU_ready,
 
         //to CU
@@ -148,7 +147,6 @@
                 ALU_overflow <= 1'b0;
                 ALU_zero     <= 1'b0;
                 ALU_con_met  <= 1'b0;
-                ALU_err      <= 1'b0;
                 ALU_result_counter <= 2'b00;
             end
             else if (!busy) begin
