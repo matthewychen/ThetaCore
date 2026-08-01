@@ -4,6 +4,18 @@ This is a project that aims to construct a single RISC-V ISA-based CPU and assoc
 
 Key features will include conditional branching, ALUops, and 4kb of user-dictable memory.
 
+#### To build and run in one step:
+
+compandrun.py does the whole loop — assembles the source, rebuilds the design, loads the image, runs it, and reports:
+
+```
+python compandrun.py programs/control.s
+```
+
+prints the execution trace, the final non-zero registers and memory, and the path to the waveform. flags: --no-trace, --no-wave, --full, --gtkwave, --max N. takes a prebuilt .hex too. everything lands in build/.
+
+the sections below are the manual equivalents, if you want to drive the pieces yourself.
+
 #### To create testbench:
 
 install icarusverilog sim and gtkwave from respective vendors (don't use icarusverilog bundled gtkwave, I noticed performance issues); add both to PATH. cd into /Testbench. Modify list.f as needed to define compilation list. Then run:

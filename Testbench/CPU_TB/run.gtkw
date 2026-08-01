@@ -1,0 +1,92 @@
+[*]
+[*] ThetaCore multi-cycle core -- tb_run / compandrun.py
+[*]
+[dumpfile] "run_wave.vcd"
+[savefile] "CPU_TB/run.gtkw"
+[timestart] 0
+[size] 1600 900
+[pos] -1 -1
+*-18.0 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_run.
+[treeopen] tb_run.DUT.core.
+[sst_width] 260
+[signals_width] 300
+[sst_expanded] 1
+[sst_vpaned_height] 300
+
+@200
+-clock and reset
+@28
+tb_run.soc_clk
+tb_run.reset
+
+@200
+-FSM  0=IF 1=ID 2=EX 3=MEM 4=WB 5=HALT
+@22
+tb_run.DUT.core.state[2:0]
+tb_run.DUT.core.cyc[2:0]
+@28
+tb_run.DUT.core.halted
+
+@200
+-fetch
+@22
+tb_run.DUT.core.PC[31:0]
+tb_run.DUT.core.Cu_IR[31:0]
+
+@200
+-decode  (latched at ID/EX boundary)
+@22
+tb_run.DUT.core.cu_op_r[5:0]
+tb_run.DUT.core.rs1_r[4:0]
+tb_run.DUT.core.rs2_r[4:0]
+tb_run.DUT.core.rd_r[4:0]
+tb_run.DUT.core.imm_r[31:0]
+
+@200
+-control  ASel 0=rs1 1=PC 2=zero / BSel 0=rs2 1=imm 2=shamt
+@200
+-         WBSel 0=ALU 1=MEM 2=PC+4 / PCSel 0=seq 1=branch 2=jalr
+@22
+tb_run.DUT.core.ASel[1:0]
+tb_run.DUT.core.BSel[1:0]
+tb_run.DUT.core.WBSel[1:0]
+tb_run.DUT.core.PCSel[1:0]
+@28
+tb_run.DUT.core.RegWEn
+tb_run.DUT.core.PCWrite
+
+@200
+-execute
+@22
+tb_run.DUT.core.alu_a[31:0]
+tb_run.DUT.core.alu_b[31:0]
+tb_run.DUT.core.ALU_out[31:0]
+tb_run.DUT.core.alu_result_r[31:0]
+@28
+tb_run.DUT.core.con_met_r
+
+@200
+-memory
+@28
+tb_run.DUT.core.mem_req
+tb_run.DUT.core.MMU_ready
+@22
+tb_run.DUT.core.mem_addr[31:0]
+tb_run.DUT.core.MMU_dat_out[31:0]
+
+@200
+-writeback
+@22
+tb_run.DUT.core.wb_data[31:0]
+
+@200
+-architectural registers
+@22
+tb_run.DUT.core.registers.regs[1][31:0]
+tb_run.DUT.core.registers.regs[2][31:0]
+tb_run.DUT.core.registers.regs[3][31:0]
+tb_run.DUT.core.registers.regs[4][31:0]
+tb_run.DUT.core.registers.regs[5][31:0]
+[pattern_trace] 1
+[pattern_trace] 0

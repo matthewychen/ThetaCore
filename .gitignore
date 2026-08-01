@@ -10,3 +10,6 @@ runsim
 failures/
 programs/_difftest.hex
 __pycache__/
+
+# compandrun.py output
+build/
