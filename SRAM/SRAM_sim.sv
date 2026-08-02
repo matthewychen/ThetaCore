@@ -17,6 +17,14 @@ module SRAM_sim(
     reg [31:0] memory [0:127];
     reg [31:0] reg_dataout;
 
+    // Set once a read has actually landed in reg_dataout. dataout is gated
+    // behind THIS rather than behind read_enable, so the word stays presented
+    // after the enable drops and a consumer can sample it whenever it likes.
+    // Gating on read_enable instead forced every consumer to hold the enable
+    // across two edges to see its own data -- a memory-interface defect paid
+    // for by everyone who talks to the memory.
+    reg read_valid;
+
     integer i;
 
     // 512 characters. Verilog silently truncates an over-long plusarg string
@@ -27,6 +35,10 @@ module SRAM_sim(
     integer pf;
 
     initial begin
+        // Explicitly cleared: an uninitialised read_valid is X, and X on the
+        // gate puts X on dataout for every read before the first one.
+        read_valid  = 1'b0;
+        reg_dataout = 32'b0;
         for (i = 0; i < 128; i = i + 1) begin
             memory[i] = 32'b0;
         end
@@ -50,7 +62,8 @@ module SRAM_sim(
 
     // Drive WL_sel and byte selection synchronously
     always @(posedge clk) begin
-        if (reset) begin            
+        if (reset) begin
+            read_valid <= 1'b0;
         end else begin
             if (write_enable && read_enable) begin
             end
@@ -66,18 +79,19 @@ module SRAM_sim(
                 if(byte_sel[2]==1) begin
                     memory[addr_sel][23:16] <= datain[23:16];
                 end
-                
+
                 if(byte_sel[3]==1) begin
                     memory[addr_sel][31:24] <= datain[31:24];
                 end
             end
             else if (read_enable) begin //partial reads are not supported, only partial writes
                 reg_dataout <= memory[addr_sel];
+                read_valid  <= 1'b1;
             end
         end
     end
-    
-    assign dataout = reset ? 32'b0 : ~read_enable ? 32'b0 : reg_dataout;
+
+    assign dataout = (reset || !read_valid) ? 32'b0 : reg_dataout;
 
 
 endmodule

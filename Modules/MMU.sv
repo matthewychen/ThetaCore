@@ -153,20 +153,19 @@ module MMU(
                 end
 
                 M_ACCESS: begin
-                    // The SRAM commits a write on the edge entering this state,
-                    // so one cycle of write_enable is enough -- holding it
-                    // longer would just repeat the same store.
+                    // The SRAM commits the write, and registers the read, on
+                    // the edge entering this state -- so one cycle of either
+                    // enable is enough. read_enable used to have to be held
+                    // across the next edge as well, because dataout was gated
+                    // behind it; SRAM_sim now gates on read_valid and keeps
+                    // presenting the word, so that workaround is gone.
+                    read_pulse  <= 1'b0;
                     write_pulse <= 1'b0;
                     mstate      <= M_CAPTURE;
                 end
 
                 M_CAPTURE: begin
-                    // read_enable had to stay asserted through this edge.
-                    // SRAM_sim gates dataout behind read_enable, so dropping it
-                    // in M_ACCESS would zero the bus before anyone could sample
-                    // the word it had just latched.
                     sram_dat_r <= sram_dataout;
-                    read_pulse <= 1'b0;
                     mstate     <= M_DONE;
                 end
 
