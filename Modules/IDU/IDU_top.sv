@@ -23,7 +23,7 @@ module IDU_top(
     output reg invalid_instruction
 );
 
-// B10: the broad-type classification is a pure function of instruction[6:0],
+// The broad-type classification is a pure function of instruction[6:0],
 // so it is combinational. It used to occupy a clock phase of its own, with the
 // specific decode in the next phase and two entirely empty phases around them
 // -- four cycles to do nothing that needed more than one.

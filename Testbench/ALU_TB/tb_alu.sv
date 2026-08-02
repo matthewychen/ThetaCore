@@ -135,7 +135,7 @@ CU_EX dut (
         // BGEU: 20 >= 10 -> Met
         testsequence("BGEU (20>=10)", 32'd20, 32'd10, `CU_BGEU, 32'd0, 1, 0, 1);
 
-        // --- Effective address calculation (B4) ---
+        // --- Effective address calculation ---
         // Every one of these previously fell through to ALUOP_NOP and
         // returned 0, so the ALU could not produce a memory address.
         testsequence("LW addr (0x100+0x20)", 32'h100, 32'h20, `CU_LW,  32'h120, 0, 0, 0);
@@ -143,7 +143,7 @@ CU_EX dut (
         testsequence("LB addr (0x40-4)",     32'h40,  32'hFFFF_FFFC, `CU_LB, 32'h3C, 0, 0, 0);
         testsequence("SB addr (0x10+1)",     32'h10,  32'd1,  `CU_SB,  32'h11, 0, 0, 0);
 
-        // --- Jump / upper immediate targets (B4) ---
+        // --- Jump / upper immediate targets ---
         testsequence("JALR (0x80+0x10)",     32'h80,   32'h10, `CU_JALR,  32'h90,   0, 0, 0);
         testsequence("AUIPC (0x1000+0x24)",  32'h1000, 32'h24, `CU_AUIPC, 32'h1024, 0, 0, 0);
 

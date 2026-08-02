@@ -3,7 +3,7 @@
 //==============================================================================
 // ALU.
 //
-// B10: collapsed from a four-phase sequencer to a single registered cycle.
+// Collapsed from a four-phase sequencer to a single registered cycle.
 // The old phase 00 only advanced a counter, phase 01 latched operands and
 // translated the opcode, phase 10 computed, phase 11 cleared a flag. Every
 // sub-block (AddSub, Comparator, LogOp, Shifter) is combinational, so three of
